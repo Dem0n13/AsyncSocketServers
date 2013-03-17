@@ -2,22 +2,22 @@
 
 namespace Dem0n13.Utils
 {
-    public class UniqueObject<T>
+    public class BaseEntity<T>
     {
         // ReSharper disable StaticFieldInGenericType
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         // ReSharper restore StaticFieldInGenericType
 
-        public readonly long Id = LongIdGenerator<T>.Current.GetNext();
+        public readonly int Id = IntIdGenerator<T>.Current.GetNext();
         protected readonly string Name;
 
         /// <summary>
-        /// Initializes a new unique instance of the <see cref="UniqueObject{T}"/>
+        /// Initializes a new unique instance of the <see cref="BaseEntity{T}"/>
         /// </summary>
-        public UniqueObject()
+        public BaseEntity()
         {
             Name = typeof(T).Name + "_" + Id;
-            Logger.Trace("Object {0} is created", Name);
+            Logger.Trace("Entity {0} is created", Name);
         }
 
         public override int GetHashCode()
@@ -35,10 +35,10 @@ namespace Dem0n13.Utils
             return Name;
         }
 
-        ~UniqueObject()
+        ~BaseEntity()
         {
-            Logger.Trace("Object {0} is deleted", Name);
-            LongIdGenerator<T>.Current.Release(Id);
+            Logger.Trace("Entity {0} is deleted", Name);
+            IntIdGenerator<T>.Current.Release(Id);
         }
     }
 }

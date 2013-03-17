@@ -39,8 +39,10 @@
   <ItemGroup>
     <Compile Include="Pool.cs" />
     <Compile Include="UniqueObject.cs" />
-    <Compile Include="IdGenerator.cs" />
+    <Compile Include="LongIdGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IntIdGenerator.cs" />
+    <Compile Include="BaseEntity.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
