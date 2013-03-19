@@ -6,13 +6,14 @@ using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class TcpClientArgs : SocketAsyncEventArgs
+    public class TcpClientArgs : SocketAsyncEventArgs, IPoolable<TcpClientArgs>
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // символы, обрезаемые в сообщениях: \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
-        
-        private readonly UniqueObject<TcpClientArgs> _uniqueToken = new UniqueObject<TcpClientArgs>();
+
+        private readonly int _id = IdGenerator<TcpClientArgs>.Current.GetNext();
+        public int Id { get { return _id; } }
 
         /// <summary>
         /// Возвращает или задает сообщение в кодировке UTF8, хранящееся в буфере
@@ -37,21 +38,6 @@ namespace Dem0n13.SocketServer
 
                 System.Buffer.BlockCopy(bytes, 0, Buffer, Offset, length);
             }
-        }
-
-        public override int GetHashCode()
-        {
-            return _uniqueToken.Id.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            return ReferenceEquals(this, obj);
-        }
-
-        public override string ToString()
-        {
-            return _uniqueToken.ToString();
         }
     }
 }

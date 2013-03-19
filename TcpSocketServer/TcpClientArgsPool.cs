@@ -15,6 +15,8 @@ namespace Dem0n13.SocketServer
                 throw new ArgumentException("Начальное количество элементов не может быть отрицательным", "initialCount");
             if (bufferSize < 1)
                 throw new ArgumentException("Размер буфера имеет неверное значение " + bufferSize, "bufferSize");
+            if (ioCompleted == null)
+                throw new ArgumentNullException("ioCompleted");
 
             _bufferSize = bufferSize;
             _ioCompleted = ioCompleted;

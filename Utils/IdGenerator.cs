@@ -8,31 +8,31 @@ namespace Dem0n13.Utils
     /// Generation starts from zero.
     /// Automaticly reuses old numbers - only for <see cref="UniqueObject{T}"/>.
     /// </summary>
-    public class LongIdGenerator<T>
+    public class IdGenerator<T>
     {
         #region Singleton implementation
 
         /// <summary>
-        /// Current instance of <see cref="LongIdGenerator{T}"/>
+        /// Current instance of <see cref="IdGenerator{T}"/>
         /// </summary>
-        public static readonly LongIdGenerator<T> Current = new LongIdGenerator<T>();
+        public static readonly IdGenerator<T> Current = new IdGenerator<T>();
 
-        private LongIdGenerator()
+        private IdGenerator()
         {
         }
 
         #endregion
 
-        private readonly ConcurrentQueue<long> _usedIds = new ConcurrentQueue<long>();
-        private long _currentMaxId = -1;
+        private readonly ConcurrentQueue<int> _usedIds = new ConcurrentQueue<int>();
+        private int _currentMaxId = -1;
 
         /// <summary>
-        /// Generates a new unique <see cref="long"/> number
+        /// Generates a new unique <see cref="int"/> number
         /// </summary>
         /// <returns></returns>
-        public long GetNext()
+        public int GetNext()
         {
-            long id;
+            int id;
             return _usedIds.TryDequeue(out id) ? id : Interlocked.Increment(ref _currentMaxId);
         }
 
@@ -40,7 +40,7 @@ namespace Dem0n13.Utils
         /// Returns unused number for future reusing
         /// </summary>
         /// <param name="id">Number to return</param>
-        internal void Release(long id)
+        internal void Release(int id)
         {
             _usedIds.Enqueue(id);
         }

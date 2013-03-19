@@ -7,7 +7,7 @@ using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class UdpClientArgs : UniqueObject<UdpClientArgs>
+    public class UdpClientArgs : PoolObject<UdpClientArgs>
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");

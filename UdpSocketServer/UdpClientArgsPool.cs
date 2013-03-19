@@ -18,14 +18,14 @@ namespace Dem0n13.SocketServer
             Allocate(initialCount);
         }
 
-        protected override UdpClientArgs CreateNew()
-        {
-            return new UdpClientArgs(_bufferSize);
-        }
-
         protected override void CleanUp(UdpClientArgs item)
         {
             item.UTF8Message = null;
+        }
+
+        protected override UdpClientArgs CreateNew()
+        {
+            return new UdpClientArgs(_bufferSize);
         }
     }
 }

@@ -12,10 +12,10 @@ namespace Dem0n13.Utils
     /// </summary>
     /// <typeparam name="T">Type of stored objects</typeparam>
     public abstract class Pool<T>
-        where T : class
+        where T : class, IPoolable<T>
     {
         private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
-        private readonly Dictionary<T, bool> _isInPool; // storing all objects and their states (true - "in pool", otherwise - false)
+        private readonly ConcurrentDictionary<int, bool> _states; // storing all objects' ids and their states (true - "in pool", otherwise - false)
         private int _currentCount; // current object count "in pool" (perfomance _storage.Count improvement)
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace Dem0n13.Utils
         /// </summary>
         public int TotalCount
         {
-            get { return _isInPool.Count; }
+            get { return _states.Count; }
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Dem0n13.Utils
         protected Pool()
         {
             _storage = new ConcurrentStack<T>();
-            _isInPool = new Dictionary<T, bool>();
+            _states = new ConcurrentDictionary<int, bool>();
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Dem0n13.Utils
             if (item == null)
                 throw new ArgumentNullException("item");
             bool isInPool;
-            if (!_isInPool.TryGetValue(item, out isInPool))
+            if (!_states.TryGetValue(item.Id, out isInPool))
                 throw new ArgumentException("This object is not from this pool", "item");
             if (isInPool)
                 throw new InvalidOperationException("This object is already in the pool");
@@ -80,14 +80,14 @@ namespace Dem0n13.Utils
         /// </summary>
         public void WaitAll()
         {
-            while (_currentCount != _isInPool.Count)
+            while (_currentCount != _states.Count)
                 if (!Thread.Yield())
                     Thread.Sleep(100);
         }
 
         public override string ToString()
         {
-            return string.Format("{0}: {1}/{2}", GetType().Name, _currentCount, _isInPool.Count);
+            return string.Format("{0}: {1}/{2}", GetType().Name, _currentCount, _states.Count);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace Dem0n13.Utils
         protected T Allocate()
         {
             var item = CreateNew();
-            _isInPool.Add(item, false);
+            _states.TryAdd(item.Id, false);
             return item;
         }
 
@@ -136,7 +136,7 @@ namespace Dem0n13.Utils
             if (_storage.TryPop(out item))
             {
                 Interlocked.Decrement(ref _currentCount);
-                _isInPool[item] = false;
+                _states[item.Id] = false;
                 return true;
             }
             return false;
@@ -144,7 +144,7 @@ namespace Dem0n13.Utils
 
         private void Push(T item)
         {
-            _isInPool[item] = true;
+            _states[item.Id] = true;
             _storage.Push(item);
             Interlocked.Increment(ref _currentCount);
         }

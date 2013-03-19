@@ -2,27 +2,32 @@
 
 namespace Dem0n13.Utils
 {
-    public class UniqueObject<T>
+    public abstract class UniqueObject<T> : IUnique<T>
     {
         // ReSharper disable StaticFieldInGenericType
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         // ReSharper restore StaticFieldInGenericType
 
-        public readonly long Id = LongIdGenerator<T>.Current.GetNext();
+        private readonly int _id = IdGenerator<T>.Current.GetNext();
         protected readonly string Name;
+
+        public int Id
+        {
+            get { return _id; }
+        }
 
         /// <summary>
         /// Initializes a new unique instance of the <see cref="UniqueObject{T}"/>
         /// </summary>
-        public UniqueObject()
+        protected UniqueObject()
         {
-            Name = typeof(T).Name + "_" + Id;
+            Name = typeof (T).Name + "_" + _id;
             Logger.Trace("Object {0} is created", Name);
         }
 
         public override int GetHashCode()
         {
-            return Id.GetHashCode();
+            return _id.GetHashCode();
         }
 
         public override bool Equals(object obj)
@@ -38,7 +43,7 @@ namespace Dem0n13.Utils
         ~UniqueObject()
         {
             Logger.Trace("Object {0} is deleted", Name);
-            LongIdGenerator<T>.Current.Release(Id);
+            IdGenerator<T>.Current.Release(_id);
         }
     }
 }
