@@ -8,6 +8,7 @@ namespace Dem0n13.SocketServer
         private readonly int _bufferSize;
 
         public UdpClientArgsPool(int initialCount, int bufferSize)
+            : base(PoolReleasingMethod.Manual)
         {
             if (initialCount < 0)
                 throw new ArgumentException("Начальное количество элементов не может быть отрицательным", "initialCount");
@@ -15,7 +16,7 @@ namespace Dem0n13.SocketServer
                 throw new ArgumentException("Размер буфера имеет неверное значение " + bufferSize, "bufferSize");
 
             _bufferSize = bufferSize;
-            Allocate(initialCount);
+            AllocatePush(initialCount);
         }
 
         protected override void CleanUp(UdpClientArgs item)
@@ -23,9 +24,9 @@ namespace Dem0n13.SocketServer
             item.UTF8Message = null;
         }
 
-        protected override UdpClientArgs CreateNew()
+        protected override UdpClientArgs ObjectConstructor()
         {
-            return new UdpClientArgs(_bufferSize);
+            return new UdpClientArgs(_bufferSize, this);
         }
     }
 }

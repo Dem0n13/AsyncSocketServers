@@ -12,8 +12,13 @@ namespace Dem0n13.SocketServer
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        private readonly int _id = IdGenerator<TcpClientArgs>.Current.GetNext();
-        public int Id { get { return _id; } }
+        private readonly PoolToken<TcpClientArgs> _poolToken;
+        public PoolToken<TcpClientArgs> PoolToken { get { return _poolToken; } }
+
+        public TcpClientArgs(Pool<TcpClientArgs> pool)
+        {
+            _poolToken = new PoolToken<TcpClientArgs>(this, pool);
+        }
 
         /// <summary>
         /// Возвращает или задает сообщение в кодировке UTF8, хранящееся в буфере

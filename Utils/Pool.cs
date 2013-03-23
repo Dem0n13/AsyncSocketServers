@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Dem0n13.Utils
@@ -12,11 +12,29 @@ namespace Dem0n13.Utils
     /// </summary>
     /// <typeparam name="T">Type of stored objects</typeparam>
     public abstract class Pool<T>
-        where T : class, IPoolable<T>
+        where T : IPoolable<T>
     {
-        private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
+        private readonly ConcurrentStack<PoolToken<T>> _tokens; // storing tokens "in pool"
         private readonly ConcurrentDictionary<int, bool> _states; // storing all objects' ids and their states (true - "in pool", otherwise - false)
+        private readonly PoolReleasingMethod _releasingMethod;
         private int _currentCount; // current object count "in pool" (perfomance _storage.Count improvement)
+        private volatile bool _isReleasingAllowed;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Pool{T}"/>.
+        /// </summary>
+        protected Pool(PoolReleasingMethod releasingMethod = PoolReleasingMethod.Default)
+        {
+            if (!Enum.IsDefined(typeof (PoolReleasingMethod), releasingMethod))
+                throw new ArgumentOutOfRangeException("releasingMethod");
+
+            _tokens = new ConcurrentStack<PoolToken<T>>();
+            _states = new ConcurrentDictionary<int, bool>();
+            _releasingMethod = releasingMethod;
+            _isReleasingAllowed = true;
+        }
+
+        #region Public and internal members
 
         /// <summary>
         /// Gets the current number of the <see cref="T"/> in pool.
@@ -35,16 +53,7 @@ namespace Dem0n13.Utils
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pool{T}"/>.
-        /// </summary>
-        protected Pool()
-        {
-            _storage = new ConcurrentStack<T>();
-            _states = new ConcurrentDictionary<int, bool>();
-        }
-
-        /// <summary>
-        /// Puts the object back to the <see cref="Pool{T}"/>.
+        /// Puts the object back to the pool.
         /// </summary>
         /// <param name="item">The object to return</param>
         /// <exception cref="InvalidOperationException" />
@@ -54,14 +63,34 @@ namespace Dem0n13.Utils
         {
             if (item == null)
                 throw new ArgumentNullException("item");
-            bool isInPool;
-            if (!_states.TryGetValue(item.Id, out isInPool))
-                throw new ArgumentException("This object is not from this pool", "item");
-            if (isInPool)
-                throw new InvalidOperationException("This object is already in the pool");
+            var token = item.PoolToken;
+            bool inPool;
+            if (!_states.TryGetValue(token.Id, out inPool))
+                throw new ArgumentException("Specified object is not from this pool", "item");
+            if (inPool)
+                throw new InvalidOperationException("Specified object is already in the pool");
             
-            CleanUp(item);
-            Push(item);
+            Push(token);
+        }
+
+        /// <summary>
+        /// Puts the object with specified <see cref="PoolToken{T}"/> back to the pool.
+        /// Only for usage by instance of <see cref="PoolToken{T}"/>
+        /// </summary>
+        /// <param name="token">The token of the poolable object to put</param>
+        internal void Release(PoolToken<T> token)
+        {
+            Debug.Assert(token != null);
+
+            if (_isReleasingAllowed)
+            {
+                CleanUp(token.Object);
+                Push(token);
+            }
+            else
+            {
+                Unregister(token);
+            }
         }
 
         /// <summary>
@@ -70,8 +99,8 @@ namespace Dem0n13.Utils
         /// <returns>Taken from the pool object</returns>
         public T Take()
         {
-            T item;
-            return TryPop(out item) ? item : Allocate();
+            PoolToken<T> item;
+            return TryPop(out item) ? item.Object : AllocatePop();
         }
 
         /// <summary>
@@ -81,8 +110,7 @@ namespace Dem0n13.Utils
         public void WaitAll()
         {
             while (_currentCount != _states.Count)
-                if (!Thread.Yield())
-                    Thread.Sleep(100);
+                Wait();
         }
 
         public override string ToString()
@@ -90,26 +118,105 @@ namespace Dem0n13.Utils
             return string.Format("{0}: {1}/{2}", GetType().Name, _currentCount, _states.Count);
         }
 
+        #endregion
+
+        #region Pool operations
+
         /// <summary>
-        /// Creates and adds the specified count of objects to pool.
+        /// Creates and adds the specified count of instances of <see cref="T"/> to the pool.
         /// </summary>
         /// <param name="count">Count of objects to add</param>
-        protected void Allocate(int count)
+        protected void AllocatePush(int count)
         {
             for (var i = 0; i < count; i++)
-                Push(Allocate());
+                AllocatePush();
         }
 
         /// <summary>
-        /// Creates, adds to pool and returns from pool one object 
+        /// Creates and adds a new instance of <see cref="T"/> to the pool.
         /// </summary>
-        /// <returns>Taken from the pool new object</returns>
-        protected T Allocate()
+        protected void AllocatePush()
         {
-            var item = CreateNew();
-            _states.TryAdd(item.Id, false);
+            var item = ObjectConstructor();
+            Push(item.PoolToken);
+        }
+
+        /// <summary>
+        /// Creates, registers "out of the pool" and returns a new instance of <see cref="T"/>.
+        /// </summary>
+        /// <returns>Created pooled object</returns>
+        protected T AllocatePop()
+        {
+            var item = ObjectConstructor();
+            Register(item.PoolToken);
             return item;
         }
+
+        /// <summary>
+        /// Try to remove and unregister one object from the pool.
+        /// </summary>
+        /// <returns>true if an element was removed and unregistered from the pool successfully; otherwise, false.</returns>
+        protected bool TryPopUnregister()
+        {
+            PoolToken<T> token;
+            return TryPop(out token) && Unregister(token);
+        }
+
+        /// <summary>
+        /// Provides a delay 
+        /// </summary>
+        public void Wait()
+        {
+            Debug.WriteLine("Wait() " + _releasingMethod);
+            switch (_releasingMethod)
+            {
+                case PoolReleasingMethod.Manual:
+                    if (!Thread.Yield())
+                        Thread.Sleep(100);
+                    break;
+                case PoolReleasingMethod.Default:
+                case PoolReleasingMethod.Auto:
+                    GC.Collect();
+                    Thread.Sleep(100);
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Tokens processing
+
+        private void Push(PoolToken<T> token)
+        {
+            _states[token.Id] = true;
+            _tokens.Push(token);
+            Interlocked.Increment(ref _currentCount);
+        }
+
+        private bool TryPop(out PoolToken<T> token)
+        {
+            if (_tokens.TryPop(out token))
+            {
+                _states[token.Id] = false;
+                Interlocked.Decrement(ref _currentCount);
+                return true;
+            }
+            return false;
+        }
+
+        private void Register(PoolToken<T> token)
+        {
+            _states.TryAdd(token.Id, false);
+        }
+
+        private bool Unregister(PoolToken<T> token)
+        {
+            token.Cancel();
+            bool state;
+            return _states.TryRemove(token.Id, out state);
+        }
+
+        #endregion
 
         #region For overiding
 
@@ -117,7 +224,7 @@ namespace Dem0n13.Utils
         /// Initializes a new object, ready to be placed in the pool
         /// </summary>
         /// <returns>The initialized object</returns>
-        protected abstract T CreateNew();
+        protected abstract T ObjectConstructor();
 
         /// <summary>
         /// Provides clean up of the object before returning to the pool
@@ -129,26 +236,13 @@ namespace Dem0n13.Utils
 
         #endregion
 
-        #region Storage wrapper to optimize the counting CurrentCount and states
-
-        private bool TryPop(out T item)
+        ~Pool()
         {
-            if (_storage.TryPop(out item))
+            _isReleasingAllowed = false;
+            
+            while (TryPopUnregister())
             {
-                Interlocked.Decrement(ref _currentCount);
-                _states[item.Id] = false;
-                return true;
             }
-            return false;
         }
-
-        private void Push(T item)
-        {
-            _states[item.Id] = true;
-            _storage.Push(item);
-            Interlocked.Increment(ref _currentCount);
-        }
-
-        #endregion
     }
 }

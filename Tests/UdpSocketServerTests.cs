@@ -44,7 +44,7 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var client = new UdpClientArgs(BufferSize);
+            var client = new UdpClientArgsPool(1, BufferSize).Take();
 
             for (var i = 0; i < 100; i++)
             {

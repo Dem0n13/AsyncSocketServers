@@ -13,7 +13,8 @@ namespace Dem0n13.SocketServer
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        public UdpClientArgs(int bufferSize)
+        public UdpClientArgs(int bufferSize, Pool<UdpClientArgs> pool)
+            :base(pool)
         {
             if (bufferSize < 0)
                 throw new ArgumentException("Размер буфера должен быть неотрицательным", "bufferSize");

@@ -10,6 +10,7 @@ namespace Dem0n13.SocketServer
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
 
         public TcpClientArgsPool(int initialCount, int bufferSize, EventHandler<SocketAsyncEventArgs> ioCompleted)
+            : base(PoolReleasingMethod.Manual)
         {
             if (initialCount < 0)
                 throw new ArgumentException("Начальное количество элементов не может быть отрицательным", "initialCount");
@@ -20,12 +21,12 @@ namespace Dem0n13.SocketServer
 
             _bufferSize = bufferSize;
             _ioCompleted = ioCompleted;
-            Allocate(initialCount);
+            AllocatePush(initialCount);
         }
 
-        protected override TcpClientArgs CreateNew()
+        protected override TcpClientArgs ObjectConstructor()
         {
-            var args = new TcpClientArgs();
+            var args = new TcpClientArgs(this);
             args.SetBuffer(new byte[_bufferSize], 0, _bufferSize);
             args.Completed += _ioCompleted;
             return args;

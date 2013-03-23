@@ -10,11 +10,13 @@ namespace Dem0n13.Tests
     public class PoolTests
     {
         [Test]
-        public void Create()
+        public void Creation()
         {
-            var pool = new DerivedPool(5);
-            Assert.AreEqual(5, pool.TotalCount);
-            Assert.AreEqual(5, pool.CurrentCount);
+            var pool = new DerivedPool(0);
+            pool.Take();
+            pool.Take();
+            pool.Take();
+            Assert.AreEqual(3, pool.TotalCount);
 
             pool = new DerivedPool(100);
             Assert.AreEqual(100, pool.TotalCount);
@@ -22,20 +24,33 @@ namespace Dem0n13.Tests
         }
 
         [Test]
-        public void OneThreadTakeReturn()
+        public void Resurect()
+        {
+            var pool = new DerivedPool(0);
+            pool.Take();
+            pool.Take();
+            pool.Take();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Assert.AreEqual(3, pool.CurrentCount);
+        }
+
+        [Test]
+        public void OneThreadScenario()
         {
             const int iterations = 100;
 
             var pool = new DerivedPool(5);
             var item = pool.Take();
-            Assert.AreEqual(5, pool.TotalCount);
-            Assert.AreEqual(4, pool.CurrentCount);
-
             pool.Release(item);
             Assert.AreEqual(5, pool.TotalCount);
             Assert.AreEqual(5, pool.CurrentCount);
             Assert.Throws<InvalidOperationException>(() => pool.Release(item));
-            Assert.Throws<ArgumentException>(() => pool.Release(new Derived()));
+
+            var anotherPool = new DerivedPool(0);
+            Assert.Throws<ArgumentException>(() => pool.Release(anotherPool.Take()));
 
             for (var i = 0; i < iterations; i++)
             {
@@ -53,7 +68,7 @@ namespace Dem0n13.Tests
         }
 
         [Test]
-        public void ManyThreadsTakeReturnDerived()
+        public void MultiThreadsScenarioDerived()
         {
             const int iterations = 50;
             const int threadCount = 50;
@@ -71,6 +86,7 @@ namespace Dem0n13.Tests
                                 Thread.Sleep(1);
                                 Assert.DoesNotThrow(() => pool.Release(item));
                             }
+                            pool.Take();
                         })
                     .Start();
             }
@@ -82,7 +98,7 @@ namespace Dem0n13.Tests
         }
 
         [Test]
-        public void ManyThreadsTakeReturnInjected()
+        public void MultiThreadsScenarioInjected()
         {
             const int iterations = 50;
             const int threadCount = 50;
@@ -110,35 +126,14 @@ namespace Dem0n13.Tests
             Debug.WriteLine(pool.TotalCount);
         }
 
-        private class DerivedPool : Pool<Derived>
-        {
-            public DerivedPool(int initialCount)
-            {
-                Allocate(initialCount);
-            }
-
-            protected override Derived CreateNew()
-            {
-                return new Derived();
-            }
-        }
-
-        private class InjectedPool : Pool<Injected>
-        {
-            public InjectedPool(int initialCount)
-            {
-                Allocate(initialCount);
-            }
-
-            protected override Injected CreateNew()
-            {
-                return new Injected();
-            }
-        }
-
-        private class Derived : PoolObject<Derived> // for user class
+        private class Derived : PoolObject<Derived> // for user classes
         {
             public int Tag;
+
+            public Derived(Pool<Derived> pool) 
+                : base(pool)
+            {
+            }
         }
 
         private class ThirdParty
@@ -146,10 +141,40 @@ namespace Dem0n13.Tests
             public int Tag;
         }
 
-        private class Injected : ThirdParty, IPoolable<Injected> // for third party class
+        private class DerivedPool : Pool<Derived>
         {
-            private readonly int _id = IdGenerator<Injected>.Current.GetNext();
-            public int Id { get { return _id; } }
+            public DerivedPool(int initialCount)
+            {
+                AllocatePush(initialCount);
+            }
+
+            protected override Derived ObjectConstructor()
+            {
+                return new Derived(this);
+            }
+        }
+
+        private class Injected : ThirdParty, IPoolable<Injected> // for third party classes
+        {
+            public PoolToken<Injected> PoolToken { get; private set; }
+
+            public Injected(Pool<Injected> pool)
+            {
+                PoolToken = new PoolToken<Injected>(this, pool);
+            }
+        }
+
+        private class InjectedPool : Pool<Injected>
+        {
+            public InjectedPool(int initialCount)
+            {
+                AllocatePush(initialCount);
+            }
+
+            protected override Injected ObjectConstructor()
+            {
+                return new Injected(this);
+            }
         }
     }
 }
