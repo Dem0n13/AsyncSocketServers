@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Runtime.ConstrainedExecution;
 
 namespace Dem0n13.Utils
@@ -27,11 +26,6 @@ namespace Dem0n13.Utils
 
         #region For Pool<T> access
 
-        internal T Object
-        {
-            get { return _obj; }
-        }
-
         internal void Cancel()
         {
             _cancelled = true;
@@ -47,10 +41,9 @@ namespace Dem0n13.Utils
             }
             else
             {
-                Debug.WriteLine("Resurrect " + _id);
                 GC.ReRegisterForFinalize(this);
                 GC.ReRegisterForFinalize(_obj);
-                _pool.Release(this);
+                _pool.ReleaseUnsafe(_obj);
             }
         }
     }

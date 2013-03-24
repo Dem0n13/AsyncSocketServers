@@ -9,19 +9,19 @@ namespace Dem0n13.SocketServer
         private readonly int _bufferSize;
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
 
-        public TcpClientArgsPool(int initialCount, int bufferSize, EventHandler<SocketAsyncEventArgs> ioCompleted)
-            : base(PoolReleasingMethod.Manual)
+        public TcpClientArgsPool(int bufferSize, EventHandler<SocketAsyncEventArgs> ioCompleted, int initialCount, int maxCapacity)
+            : base(maxCapacity, PoolReleasingMethod.Manual)
         {
-            if (initialCount < 0)
-                throw new ArgumentException("Начальное количество элементов не может быть отрицательным", "initialCount");
             if (bufferSize < 1)
-                throw new ArgumentException("Размер буфера имеет неверное значение " + bufferSize, "bufferSize");
+                throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must be greater than 0");
             if (ioCompleted == null)
                 throw new ArgumentNullException("ioCompleted");
-
+            if (initialCount < 0 || maxCapacity < initialCount)
+                throw new ArgumentOutOfRangeException("initialCount", "The initial count has invalid value");
+            
             _bufferSize = bufferSize;
             _ioCompleted = ioCompleted;
-            AllocatePush(initialCount);
+            TryAllocatePush(initialCount);
         }
 
         protected override TcpClientArgs ObjectConstructor()

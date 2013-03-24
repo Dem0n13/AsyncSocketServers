@@ -18,10 +18,10 @@ namespace Dem0n13.SocketServer
         private Socket _listenSocket; // прослушивающий сокет
         private CancellationTokenSource _cancellationSource;
 
-        public TcpSocketServer(IPAddress ip, int port, int initialUserCount, int bufferSize)
+        public TcpSocketServer(IPAddress ip, int port, int bufferSize, int maxUserCount)
         {
             _serverEndPoint = new IPEndPoint(ip, port);
-            _clientPool = new TcpClientArgsPool(initialUserCount, bufferSize, IOCompleted);
+            _clientPool = new TcpClientArgsPool(bufferSize, IOCompleted, maxUserCount/4, maxUserCount);
 
             _listenArgs = new SocketAsyncEventArgs();
             _listenArgs.Completed += StartReceiving;

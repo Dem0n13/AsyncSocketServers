@@ -43,6 +43,7 @@
     <Compile Include="PoolReleasingMethod.cs" />
     <Compile Include="PoolObject.cs" />
     <Compile Include="PoolToken.cs" />
+    <Compile Include="NoLockSemaphore.cs" />
     <Compile Include="UniqueObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IdGenerator.cs" />

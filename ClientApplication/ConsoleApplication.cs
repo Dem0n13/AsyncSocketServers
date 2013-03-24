@@ -16,7 +16,7 @@ namespace Dem0n13.ClientApplication
             var serverEndPoint = new IPEndPoint(serverAddres, ServerPort);
             EndPoint emptyEndPoint = new IPEndPoint(IPAddress.None, ServerPort);
 
-            var client = new UdpClientArgs(BufferSize);
+            var client = new UdpClientArgsPool(BufferSize, 1, 1).Take();
             client.Socket.ReceiveTimeout = 500;
             Console.WriteLine("Enter the message for server");
 

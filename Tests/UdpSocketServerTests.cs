@@ -18,7 +18,7 @@ namespace Dem0n13.Tests
         [SetUp]
         public void Init()
         {
-            _server = new UdpSocketServer<MockLogicServer, MockLogicServer>(IPAddress.Loopback, 50000, 10, BufferSize);
+            _server = new UdpSocketServer<MockLogicServer, MockLogicServer>(IPAddress.Loopback, 50000, BufferSize, 10);
         }
 
         [Test]
@@ -44,7 +44,7 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var client = new UdpClientArgsPool(1, BufferSize).Take();
+            var client = new UdpClientArgsPool(BufferSize, 1, 1).Take();
 
             for (var i = 0; i < 100; i++)
             {
@@ -65,7 +65,7 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var clients = new UdpClientArgsPool(10, BufferSize);
+            var clients = new UdpClientArgsPool(BufferSize, 0, 10);
 
             for (var i = 0; i < 10; i++)
             {

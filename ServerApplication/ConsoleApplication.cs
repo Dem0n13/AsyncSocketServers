@@ -33,7 +33,7 @@ namespace Dem0n13.ServerApplication
             }
 
             // create the server
-            var server = new UdpSocketServer<MockLogicServer, NullLogicServer>(serverIP, Port, 10, 1024);
+            var server = new UdpSocketServer<MockLogicServer, NullLogicServer>(serverIP, Port, 1024, 10);
 
             Console.WriteLine("Control panel:");
             Console.WriteLine("1: Start");

@@ -16,10 +16,10 @@ namespace Dem0n13.SocketServer
         private Socket _serverSocket;
         private CancellationTokenSource _cancellationSource;
 
-        public UdpSocketServer(IPAddress ip, int port, int initialUserCount, int bufferSize)
+        public UdpSocketServer(IPAddress ip, int port, int bufferSize, int maxUserCount)
         {
             _serverEndPoint = new IPEndPoint(ip, port);
-            _clientPool = new UdpClientArgsPool(initialUserCount, bufferSize);
+            _clientPool = new UdpClientArgsPool(bufferSize, maxUserCount/4, maxUserCount);
         }
 
         protected override void StartCore()

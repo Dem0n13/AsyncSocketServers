@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Dem0n13.Utils;
 using NUnit.Framework;
 
@@ -12,13 +13,13 @@ namespace Dem0n13.Tests
         [Test]
         public void Creation()
         {
-            var pool = new DerivedPool(0);
+            var pool = new DerivedPool(0, 3);
             pool.Take();
             pool.Take();
             pool.Take();
             Assert.AreEqual(3, pool.TotalCount);
 
-            pool = new DerivedPool(100);
+            pool = new DerivedPool(100, 100);
             Assert.AreEqual(100, pool.TotalCount);
             Assert.AreEqual(100, pool.CurrentCount);
         }
@@ -26,7 +27,7 @@ namespace Dem0n13.Tests
         [Test]
         public void Resurect()
         {
-            var pool = new DerivedPool(0);
+            var pool = new DerivedPool(0, 3);
             pool.Take();
             pool.Take();
             pool.Take();
@@ -42,14 +43,14 @@ namespace Dem0n13.Tests
         {
             const int iterations = 100;
 
-            var pool = new DerivedPool(5);
+            var pool = new DerivedPool(5, 50);
             var item = pool.Take();
             pool.Release(item);
             Assert.AreEqual(5, pool.TotalCount);
             Assert.AreEqual(5, pool.CurrentCount);
             Assert.Throws<InvalidOperationException>(() => pool.Release(item));
 
-            var anotherPool = new DerivedPool(0);
+            var anotherPool = new DerivedPool(0, 1);
             Assert.Throws<ArgumentException>(() => pool.Release(anotherPool.Take()));
 
             for (var i = 0; i < iterations; i++)
@@ -73,7 +74,7 @@ namespace Dem0n13.Tests
             const int iterations = 50;
             const int threadCount = 50;
 
-            var pool = new DerivedPool(10);
+            var pool = new DerivedPool(10, 50);
 
             for (var t = 0; t < threadCount; t++)
             {
@@ -103,7 +104,7 @@ namespace Dem0n13.Tests
             const int iterations = 50;
             const int threadCount = 50;
 
-            var pool = new InjectedPool(10);
+            var pool = new InjectedPool(10, 50);
 
             for (var t = 0; t < threadCount; t++)
             {
@@ -126,6 +127,54 @@ namespace Dem0n13.Tests
             Debug.WriteLine(pool.TotalCount);
         }
 
+        [Test]
+        public void MaxCapacity()
+        {
+            const int capacity0 = 1;
+            const int capacity1 = 25;
+            const int iterations = 25;
+            const int taskCount = 25;
+
+            var pool0 = new DerivedPool(capacity0, capacity0, PoolReleasingMethod.Manual);
+            var sw = Stopwatch.StartNew();
+            MultiThreadsScenario(taskCount, iterations, pool0);
+            pool0.WaitAll();
+            Debug.WriteLine(sw.Elapsed);
+            Assert.AreEqual(capacity0, pool0.TotalCount);
+
+            var pool1 = new DerivedPool(capacity1, capacity1, PoolReleasingMethod.Manual);
+            sw.Restart();
+            MultiThreadsScenario(taskCount, iterations, pool1);
+            pool1.WaitAll();
+            Debug.WriteLine(sw.Elapsed);
+            Assert.AreEqual(capacity1, pool1.TotalCount);
+        }
+
+        private void MultiThreadsScenario<T>(int threadCount, int iterations, Pool<T> pool) where T : IPoolable<T>
+        {
+            var factory = new TaskFactory(TaskScheduler.Default);
+            ThreadPool.QueueUserWorkItem(state => { });
+            var tasks = new Task[threadCount];
+
+            for (var t = 0; t < threadCount; t++)
+            {
+                tasks[t] = factory.StartNew(
+                    () =>
+                        {
+                            for (var i = 0; i < iterations; i++)
+                            {
+                                var item = pool.Take();
+                                Thread.Sleep(10);
+                                pool.Release(item);
+                            }
+                        }
+                    );
+            }
+
+            Task.WaitAll(tasks);
+        }
+
+
         private class Derived : PoolObject<Derived> // for user classes
         {
             public int Tag;
@@ -143,9 +192,10 @@ namespace Dem0n13.Tests
 
         private class DerivedPool : Pool<Derived>
         {
-            public DerivedPool(int initialCount)
+            public DerivedPool(int initialCount, int maxCapacity, PoolReleasingMethod releasingMethod = PoolReleasingMethod.Auto)
+                : base(maxCapacity, releasingMethod)
             {
-                AllocatePush(initialCount);
+                TryAllocatePush(initialCount);
             }
 
             protected override Derived ObjectConstructor()
@@ -166,9 +216,10 @@ namespace Dem0n13.Tests
 
         private class InjectedPool : Pool<Injected>
         {
-            public InjectedPool(int initialCount)
+            public InjectedPool(int initialCount, int maxCapacity)
+                : base(maxCapacity)
             {
-                AllocatePush(initialCount);
+                TryAllocatePush(initialCount);
             }
 
             protected override Injected ObjectConstructor()

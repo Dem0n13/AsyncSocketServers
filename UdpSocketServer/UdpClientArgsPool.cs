@@ -7,16 +7,16 @@ namespace Dem0n13.SocketServer
     {
         private readonly int _bufferSize;
 
-        public UdpClientArgsPool(int initialCount, int bufferSize)
-            : base(PoolReleasingMethod.Manual)
+        public UdpClientArgsPool(int bufferSize, int initialCount, int maxCapacity)
+            : base(maxCapacity, PoolReleasingMethod.Manual)
         {
-            if (initialCount < 0)
-                throw new ArgumentException("Начальное количество элементов не может быть отрицательным", "initialCount");
             if (bufferSize < 1)
-                throw new ArgumentException("Размер буфера имеет неверное значение " + bufferSize, "bufferSize");
-
+                throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must be greater than 0");
+            if (initialCount < 0 || maxCapacity < initialCount)
+                throw new ArgumentOutOfRangeException("initialCount", "The initial count has invalid value");
+            
             _bufferSize = bufferSize;
-            AllocatePush(initialCount);
+            TryAllocatePush(initialCount);
         }
 
         protected override void CleanUp(UdpClientArgs item)
