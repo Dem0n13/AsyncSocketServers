@@ -46,6 +46,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TcpSocketServer\TcpSocketServer.csproj">
+      <Project>{37777C7C-4F76-46AA-B2DB-8C3677D22E74}</Project>
+      <Name>TcpSocketServer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UdpSocketServer\UdpSocketServer.csproj">
       <Project>{3f2c57d0-c2ec-4576-8914-1bf65a398f3d}</Project>
       <Name>UdpSocketServer</Name>

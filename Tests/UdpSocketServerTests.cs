@@ -44,7 +44,7 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var client = new UdpClientArgsPool(BufferSize, 1, 1).Take();
+            var client = new UdpClientArgs(BufferSize);
 
             for (var i = 0; i < 100; i++)
             {
@@ -75,7 +75,7 @@ namespace Dem0n13.Tests
                                    client.Socket.ReceiveTimeout = 500;
                                    for (var r = 0; r < 100; r++)
                                    {
-                                       var message = "Request_"+o+"_" + r;
+                                       var message = "Request_" + o + "_" + r;
                                        client.UTF8Message = message;
                                        client.Socket.SendTo(client.DataBuffer, _ipEndPoint);
 

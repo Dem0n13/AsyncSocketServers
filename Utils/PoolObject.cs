@@ -10,9 +10,6 @@ namespace Dem0n13.Utils
 
         protected PoolObject(Pool<T> pool)
         {
-            if (pool == null)
-                throw new ArgumentNullException("pool");
-
             _poolToken = new PoolToken<T>(this, pool);
         }
     }

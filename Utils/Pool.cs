@@ -13,10 +13,10 @@ namespace Dem0n13.Utils
     public abstract class Pool<T>
         where T : IPoolable<T>
     {
-        private readonly ConcurrentStack<T> _storage; // storing tokens "in pool"
-        private readonly ConcurrentDictionary<int, bool> _statuses; // storing all objects' ids and their states (true - "in pool", otherwise - false)
-        private readonly NoLockSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
-        private readonly NoLockSemaphore _allocSemaphore; // light semaphore for allocate operations
+        private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
+        private readonly ConcurrentDictionary<int, bool> _registry; // storing all objects' ids and their statuses (true - "in pool", otherwise - false)
+        private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
+        private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
         private readonly PoolReleasingMethod _releasingMethod;
         
         private volatile bool _isReleasingAllowed;
@@ -41,9 +41,9 @@ namespace Dem0n13.Utils
                 throw new ArgumentOutOfRangeException("releasingMethod");
 
             _storage = new ConcurrentStack<T>();
-            _statuses = new ConcurrentDictionary<int, bool>();
-            _ioSemaphore = new NoLockSemaphore(0, maxCapacity);
-            _allocSemaphore = new NoLockSemaphore(maxCapacity, maxCapacity);
+            _registry = new ConcurrentDictionary<int, bool>();
+            _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
+            _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
             _releasingMethod = releasingMethod;
             _isReleasingAllowed = true;
         }
@@ -63,7 +63,7 @@ namespace Dem0n13.Utils
         /// </summary>
         public int TotalCount
         {
-            get { return _statuses.Count; }
+            get { return _registry.Count; }
         }
 
         /// <summary>
@@ -126,14 +126,14 @@ namespace Dem0n13.Utils
         /// </summary>
         public void WaitAll()
         {
-            while (_ioSemaphore.CurrentCount != _statuses.Count)
+            while (_ioSemaphore.CurrentCount != _registry.Count)
                 Wait();
         }
 
         public override string ToString()
         {
             return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _ioSemaphore.CurrentCount,
-                                 _statuses.Count, _ioSemaphore.MaxCount);
+                                 _registry.Count, _ioSemaphore.MaxCount);
         }
 
         #endregion
@@ -200,7 +200,7 @@ namespace Dem0n13.Utils
         /// <summary>
         /// Provides a delay for other pool operations
         /// </summary>
-        public void Wait()
+        protected void Wait()
         {
             switch (_releasingMethod)
             {
@@ -240,19 +240,19 @@ namespace Dem0n13.Utils
 
         private void SetStatus(PoolToken<T> token, bool inPool)
         {
-            _statuses[token.Id] = inPool;
+            _registry[token.Id] = inPool;
         }
 
         private bool TryGetStatus(PoolToken<T> token, out bool inPool)
         {
-            return _statuses.TryGetValue(token.Id, out inPool);
+            return _registry.TryGetValue(token.Id, out inPool);
         }
 
         private void Unregister(PoolToken<T> token)
         {
             token.Cancel();
             bool state;
-            _statuses.TryRemove(token.Id, out state);
+            _registry.TryRemove(token.Id, out state);
             _allocSemaphore.Release();
         }
 

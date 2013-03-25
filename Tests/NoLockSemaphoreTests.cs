@@ -12,7 +12,7 @@ namespace Dem0n13.Tests
         [Test]
         public void SingleThread()
         {
-            var semaphore = new NoLockSemaphore(0, 3);
+            var semaphore = new LockFreeSemaphore(0, 3);
             Assert.AreEqual(0, semaphore.CurrentCount);
 
             semaphore.Release();
@@ -40,7 +40,7 @@ namespace Dem0n13.Tests
             const int iterations = 25;
             const int resourceCount = 4;
 
-            var semaphore = new NoLockSemaphore(resourceCount);
+            var semaphore = new LockFreeSemaphore(resourceCount);
             Assert.AreEqual(resourceCount, semaphore.CurrentCount);
 
             var factory = new TaskFactory(TaskScheduler.Default);

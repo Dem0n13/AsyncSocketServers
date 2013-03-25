@@ -49,9 +49,7 @@ namespace Dem0n13.Tests
             Assert.AreEqual(5, pool.TotalCount);
             Assert.AreEqual(5, pool.CurrentCount);
             Assert.Throws<InvalidOperationException>(() => pool.Release(item));
-
-            var anotherPool = new DerivedPool(0, 1);
-            Assert.Throws<ArgumentException>(() => pool.Release(anotherPool.Take()));
+            Assert.Throws<ArgumentException>(() => pool.Release(new Derived()));
 
             for (var i = 0; i < iterations; i++)
             {
@@ -132,7 +130,7 @@ namespace Dem0n13.Tests
         {
             const int capacity0 = 1;
             const int capacity1 = 25;
-            const int iterations = 25;
+            const int iterations = 10;
             const int taskCount = 25;
 
             var pool0 = new DerivedPool(capacity0, capacity0, PoolReleasingMethod.Manual);
@@ -175,9 +173,14 @@ namespace Dem0n13.Tests
         }
 
 
-        private class Derived : PoolObject<Derived> // for user classes
+        internal class Derived : PoolObject<Derived> // for user classes
         {
             public int Tag;
+
+            public Derived()
+                : this(null)
+            {
+            }
 
             public Derived(Pool<Derived> pool) 
                 : base(pool)
@@ -185,12 +188,12 @@ namespace Dem0n13.Tests
             }
         }
 
-        private class ThirdParty
+        internal class ThirdParty
         {
             public int Tag;
         }
 
-        private class DerivedPool : Pool<Derived>
+        internal class DerivedPool : Pool<Derived>
         {
             public DerivedPool(int initialCount, int maxCapacity, PoolReleasingMethod releasingMethod = PoolReleasingMethod.Auto)
                 : base(maxCapacity, releasingMethod)
@@ -204,9 +207,14 @@ namespace Dem0n13.Tests
             }
         }
 
-        private class Injected : ThirdParty, IPoolable<Injected> // for third party classes
+        internal class Injected : ThirdParty, IPoolable<Injected> // for third party classes
         {
             public PoolToken<Injected> PoolToken { get; private set; }
+
+            public Injected()
+                : this(null)
+            {
+            }
 
             public Injected(Pool<Injected> pool)
             {
@@ -214,7 +222,7 @@ namespace Dem0n13.Tests
             }
         }
 
-        private class InjectedPool : Pool<Injected>
+        internal class InjectedPool : Pool<Injected>
         {
             public InjectedPool(int initialCount, int maxCapacity)
                 : base(maxCapacity)

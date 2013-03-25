@@ -13,11 +13,16 @@ namespace Dem0n13.SocketServer
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
+        public UdpClientArgs(int bufferSize)
+            : this(bufferSize, null)
+        {
+        }
+
         public UdpClientArgs(int bufferSize, Pool<UdpClientArgs> pool)
             :base(pool)
         {
             if (bufferSize < 0)
-                throw new ArgumentException("Размер буфера должен быть неотрицательным", "bufferSize");
+                throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must not be negative.");
             
             DataBuffer = new byte[bufferSize];
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -57,7 +62,7 @@ namespace Dem0n13.SocketServer
                 // выбираем длину сообщения. Слишком длинное обрезается
                 if (length > DataBuffer.Length)
                 {
-                    Logger.Error("Сообщение {0} было обрезано: {1} > {2}", value, length, DataBuffer.Length);
+                    Logger.Error("The message '{0}' was cut off: {1} > {2}", value, length, DataBuffer.Length);
                     length = DataBuffer.Length;
                 }
 

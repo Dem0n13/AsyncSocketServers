@@ -15,6 +15,11 @@ namespace Dem0n13.SocketServer
         private readonly PoolToken<TcpClientArgs> _poolToken;
         public PoolToken<TcpClientArgs> PoolToken { get { return _poolToken; } }
 
+        public TcpClientArgs()
+            : this(null)
+        {
+        }
+
         public TcpClientArgs(Pool<TcpClientArgs> pool)
         {
             _poolToken = new PoolToken<TcpClientArgs>(this, pool);
@@ -37,7 +42,7 @@ namespace Dem0n13.SocketServer
                 // выбираем длину сообщения. Слишком длинное обрезается
                 if (length > Count)
                 {
-                    Logger.Error("Сообщение {0} было обрезано: {1} > {2}", value, length, Count);
+                    Logger.Error("The message '{0}' was cut off: {1} > {2}", value, length, Count);
                     length = Count;
                 }
 

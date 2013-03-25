@@ -6,7 +6,7 @@ namespace Dem0n13.Utils
     /// <summary>
     /// Provides the thread safely generating unique <see cref="long"/> numbers within specified type.
     /// Generation starts from zero.
-    /// Automaticly reuses old numbers - only for <see cref="UniqueObject{T}"/>.
+    /// Automaticly reuses old numbers.
     /// </summary>
     public class IdGenerator<T>
     {
@@ -40,7 +40,7 @@ namespace Dem0n13.Utils
         /// Returns unused number for future reusing
         /// </summary>
         /// <param name="id">Number to return</param>
-        internal void Release(int id)
+        public void Release(int id)
         {
             _usedIds.Enqueue(id);
         }
