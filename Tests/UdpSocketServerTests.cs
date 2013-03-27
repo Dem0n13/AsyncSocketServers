@@ -1,8 +1,7 @@
-﻿using System.Diagnostics;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using Dem0n13.SocketServer;
+using Dem0n13.Utils;
 using NUnit.Framework;
 
 namespace Dem0n13.Tests
@@ -44,60 +43,21 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var client = new UdpClientArgs(BufferSize);
+            var client = new AsyncClientArgs();
+            client.SetBuffer(new byte[BufferSize], 0, BufferSize);
+            client.AcceptSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
 
             for (var i = 0; i < 100; i++)
             {
                 var message = "Request" + i;
                 client.UTF8Message = message;
-                client.Socket.SendTo(client.DataBuffer, _ipEndPoint);
+                client.AcceptSocket.SendTo(client.Buffer, _ipEndPoint);
 
                 client.UTF8Message = null;
-                client.Socket.ReceiveFrom(client.DataBuffer, ref _emptyEndPoint);
+                client.AcceptSocket.ReceiveFrom(client.Buffer, ref _emptyEndPoint);
+                
                 Assert.AreEqual(message, client.UTF8Message);
             }
-
-            _server.Stop();
-        }
-
-        [Test]
-        public void MultiRequestResponse()
-        {
-            _server.Start();
-
-            var clients = new UdpClientArgsPool(BufferSize, 0, 10);
-
-            for (var i = 0; i < 10; i++)
-            {
-                new Thread(o =>
-                               {
-                                   var client = clients.Take();
-                                   client.Socket.ReceiveTimeout = 500;
-                                   for (var r = 0; r < 100; r++)
-                                   {
-                                       var message = "Request_" + o + "_" + r;
-                                       client.UTF8Message = message;
-                                       client.Socket.SendTo(client.DataBuffer, _ipEndPoint);
-
-                                       client.UTF8Message = null;
-                                       try
-                                       {
-                                           client.Socket.ReceiveFrom(client.DataBuffer, ref _emptyEndPoint);
-                                           Assert.AreEqual(message, client.UTF8Message);
-                                       }
-                                       catch (SocketException ex)
-                                       {
-                                           Debug.WriteLine("{0}, Thread: {1}, It: {2}", ex.SocketErrorCode, o, r);
-                                       }
-                                   }
-
-                                   clients.Release(client);
-                                   
-                               }).Start(i);
-            }
-
-            Thread.Yield();
-            clients.WaitAll();
 
             _server.Stop();
         }

@@ -37,6 +37,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncClientArgs.cs" />
     <Compile Include="IPoolable.cs" />
     <Compile Include="IUnique.cs" />
     <Compile Include="Pool.cs" />

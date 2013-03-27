@@ -38,7 +38,6 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TcpClientArgs.cs" />
     <Compile Include="TcpClientArgsPool.cs" />
     <Compile Include="TcpSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
@@ -89,7 +90,7 @@ namespace Dem0n13.SocketServer
 
         private void IOCompleted(object sender, SocketAsyncEventArgs args)
         {
-            var client = (TcpClientArgs)args;
+            var client = (AsyncClientArgs)args;
 
             switch (client.LastOperation)
             {
@@ -106,7 +107,7 @@ namespace Dem0n13.SocketServer
             }
         }
 
-        private void ProcessReceive(TcpClientArgs args)
+        private void ProcessReceive(AsyncClientArgs args)
         {
             // если данные получены
             if (args.SocketError == SocketError.Success)
@@ -144,7 +145,7 @@ namespace Dem0n13.SocketServer
             }
         }
 
-        private void ProcessSend(TcpClientArgs args)
+        private void ProcessSend(AsyncClientArgs args)
         {
             if (args.SocketError == SocketError.Success)
             {
@@ -158,7 +159,7 @@ namespace Dem0n13.SocketServer
             CloseClientConnection(args);
         }
 
-        private void CloseClientConnection(TcpClientArgs args)
+        private void CloseClientConnection(AsyncClientArgs args)
         {
             try
             {

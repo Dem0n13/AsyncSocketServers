@@ -5,7 +5,6 @@ namespace Dem0n13.Utils
     public sealed class PoolToken<T>
         where T : IPoolable<T>
     {
-        private readonly int _id = IdGenerator<T>.Current.GetNext();
         private readonly T _obj;
         private readonly Pool<T> _pool;
 
@@ -43,10 +42,6 @@ namespace Dem0n13.Utils
                 GC.ReRegisterForFinalize(this);
                 GC.ReRegisterForFinalize(_obj);
                 _pool.ReleaseUnsafe(_obj);
-            }
-            else
-            {
-                IdGenerator<T>.Current.Release(_id);
             }
         }
     }

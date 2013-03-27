@@ -4,7 +4,7 @@ using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
-    public sealed class TcpClientArgsPool : Pool<TcpClientArgs>
+    public sealed class TcpClientArgsPool : Pool<AsyncClientArgs>
     {
         private readonly int _bufferSize;
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
@@ -24,15 +24,14 @@ namespace Dem0n13.SocketServer
             TryAllocatePush(initialCount);
         }
 
-        protected override TcpClientArgs ObjectConstructor()
+        protected override AsyncClientArgs ObjectConstructor()
         {
-            var args = new TcpClientArgs(this);
-            args.SetBuffer(new byte[_bufferSize], 0, _bufferSize);
+            var args = new AsyncClientArgs(_bufferSize, this);
             args.Completed += _ioCompleted;
             return args;
         }
 
-        protected override void CleanUp(TcpClientArgs item)
+        protected override void CleanUp(AsyncClientArgs item)
         {
             item.UTF8Message = null;
             item.AcceptSocket = null;

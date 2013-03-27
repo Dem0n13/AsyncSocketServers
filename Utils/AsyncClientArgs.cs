@@ -1,28 +1,28 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Text;
-using Dem0n13.Utils;
 using NLog;
 
-namespace Dem0n13.SocketServer
+namespace Dem0n13.Utils
 {
-    public class TcpClientArgs : SocketAsyncEventArgs, IPoolable<TcpClientArgs>
+    public class AsyncClientArgs : SocketAsyncEventArgs, IPoolable<AsyncClientArgs>
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        private readonly PoolToken<TcpClientArgs> _poolToken;
-        PoolToken<TcpClientArgs> IPoolable<TcpClientArgs>.PoolToken { get { return _poolToken; } }
+        private readonly PoolToken<AsyncClientArgs> _poolToken;
+        PoolToken<AsyncClientArgs> IPoolable<AsyncClientArgs>.PoolToken { get { return _poolToken; } }
 
-        public TcpClientArgs()
-            : this(null)
+        public AsyncClientArgs(int bufferSize)
+            : this(bufferSize, null)
         {
         }
 
-        public TcpClientArgs(Pool<TcpClientArgs> pool)
+        public AsyncClientArgs(int bufferSize, Pool<AsyncClientArgs> pool)
         {
-            _poolToken = new PoolToken<TcpClientArgs>(this, pool);
+            SetBuffer(new byte[bufferSize], 0, bufferSize);
+            _poolToken = new PoolToken<AsyncClientArgs>(this, pool);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Dem0n13.SocketServer
             set
             {
                 Array.Clear(Buffer, Offset, Count);
-                if (string.IsNullOrEmpty(value)) return;
+                if (value == null) return;
                 
                 var bytes = UTF8.GetBytes(value);
                 var length = bytes.Length;
