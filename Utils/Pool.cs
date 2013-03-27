@@ -17,8 +17,6 @@ namespace Dem0n13.Utils
         private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
         private readonly PoolReleasingMethod _releasingMethod;
-        
-        private volatile bool _isReleasingAllowed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit.
@@ -43,7 +41,6 @@ namespace Dem0n13.Utils
             _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
             _releasingMethod = releasingMethod;
-            _isReleasingAllowed = true;
         }
 
         #region Public and internal members
@@ -91,15 +88,8 @@ namespace Dem0n13.Utils
         /// <param name="item"> </param>
         internal void ReleaseUnsafe(T item)
         {
-            if (_isReleasingAllowed)
-            {
-                CleanUp(item);
-                Push(item);
-            }
-            else
-            {
-                Unregister(item.PoolToken);
-            }
+            CleanUp(item);
+            Push(item);
         }
 
         /// <summary>
@@ -235,13 +225,6 @@ namespace Dem0n13.Utils
             return false;
         }
 
-
-        private void Unregister(PoolToken<T> token)
-        {
-            token.Cancel();
-            _allocSemaphore.Release();
-        }
-
         #endregion
 
         #region For overriding
@@ -261,15 +244,5 @@ namespace Dem0n13.Utils
         }
 
         #endregion
-
-        ~Pool()
-        {
-            _isReleasingAllowed = false;
-            Wait();
-            
-            T item;
-            while (TryPop(out item))
-                Unregister(item.PoolToken);
-        }
     }
 }
