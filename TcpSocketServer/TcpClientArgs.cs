@@ -8,12 +8,12 @@ namespace Dem0n13.SocketServer
 {
     public class TcpClientArgs : SocketAsyncEventArgs, IPoolable<TcpClientArgs>
     {
-        private static readonly char[] TrimChars = new[] { char.MinValue }; // символы, обрезаемые в сообщениях: \0
+        private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
         private readonly PoolToken<TcpClientArgs> _poolToken;
-        public PoolToken<TcpClientArgs> PoolToken { get { return _poolToken; } }
+        PoolToken<TcpClientArgs> IPoolable<TcpClientArgs>.PoolToken { get { return _poolToken; } }
 
         public TcpClientArgs()
             : this(null)
@@ -26,7 +26,7 @@ namespace Dem0n13.SocketServer
         }
 
         /// <summary>
-        /// Возвращает или задает сообщение в кодировке UTF8, хранящееся в буфере
+        /// Gets or sets the message encoded in UTF8, stored in the DataBuffer
         /// </summary>
         public string UTF8Message
         {

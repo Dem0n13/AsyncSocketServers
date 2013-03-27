@@ -31,10 +31,7 @@ namespace Dem0n13.Tests
             pool.Take();
             pool.Take();
             pool.Take();
-
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
+            pool.WaitAll();
             Assert.AreEqual(3, pool.CurrentCount);
         }
 
@@ -102,7 +99,7 @@ namespace Dem0n13.Tests
             const int iterations = 50;
             const int threadCount = 50;
 
-            var pool = new InjectedPool(10, 50);
+            var pool = new ImplObjectPool(10, 50);
 
             for (var t = 0; t < threadCount; t++)
             {
@@ -172,7 +169,6 @@ namespace Dem0n13.Tests
             Task.WaitAll(tasks);
         }
 
-
         internal class Derived : PoolObject<Derived> // for user classes
         {
             public int Tag;
@@ -186,11 +182,6 @@ namespace Dem0n13.Tests
                 : base(pool)
             {
             }
-        }
-
-        internal class ThirdParty
-        {
-            public int Tag;
         }
 
         internal class DerivedPool : Pool<Derived>
@@ -207,32 +198,54 @@ namespace Dem0n13.Tests
             }
         }
 
-        internal class Injected : ThirdParty, IPoolable<Injected> // for third party classes
+        internal class ImplBase
         {
-            public PoolToken<Injected> PoolToken { get; private set; }
+            public int Tag;
+        }
 
-            public Injected()
+        internal class ImplObject : ImplBase, IPoolable<ImplObject>
+        {
+            public PoolToken<ImplObject> PoolToken { get; private set; }
+
+            public ImplObject()
                 : this(null)
             {
             }
 
-            public Injected(Pool<Injected> pool)
+            public ImplObject(Pool<ImplObject> pool)
             {
-                PoolToken = new PoolToken<Injected>(this, pool);
+                PoolToken = new PoolToken<ImplObject>(this, pool);
             }
         }
 
-        internal class InjectedPool : Pool<Injected>
+        internal class ImplObjectPool : Pool<ImplObject>
         {
-            public InjectedPool(int initialCount, int maxCapacity)
+            public ImplObjectPool(int initialCount, int maxCapacity)
                 : base(maxCapacity)
             {
                 TryAllocatePush(initialCount);
             }
 
-            protected override Injected ObjectConstructor()
+            protected override ImplObject ObjectConstructor()
             {
-                return new Injected(this);
+                return new ImplObject(this);
+            }
+        }
+
+        internal class ThirdParty
+        {
+        }
+
+        internal class ThirdPartyPool : Pool<PoolObjectWrapper<ThirdParty>>
+        {
+            public ThirdPartyPool(int maxCapacity)
+                : base(maxCapacity, PoolReleasingMethod.Manual)
+            {
+            }
+
+            protected override PoolObjectWrapper<ThirdParty> ObjectConstructor()
+            {
+                return new PoolObjectWrapper<ThirdParty>(new ThirdParty(), this);
             }
         }
     }

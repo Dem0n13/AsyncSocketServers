@@ -19,7 +19,7 @@ namespace Dem0n13.SocketServer
         }
 
         public UdpClientArgs(int bufferSize, Pool<UdpClientArgs> pool)
-            :base(pool)
+            : base(pool)
         {
             if (bufferSize < 0)
                 throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must not be negative.");

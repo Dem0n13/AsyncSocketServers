@@ -14,7 +14,6 @@ namespace Dem0n13.Utils
         where T : IPoolable<T>
     {
         private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
-        private readonly ConcurrentDictionary<int, bool> _registry; // storing all objects' ids and their statuses (true - "in pool", otherwise - false)
         private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
         private readonly PoolReleasingMethod _releasingMethod;
@@ -37,11 +36,10 @@ namespace Dem0n13.Utils
         {
             if (maxCapacity < 1)
                 throw new ArgumentOutOfRangeException("maxCapacity", "Max capacity must be greater than 0");
-            if (!Enum.IsDefined(typeof(PoolReleasingMethod), releasingMethod))
+            if (!Enum.IsDefined(typeof (PoolReleasingMethod), releasingMethod))
                 throw new ArgumentOutOfRangeException("releasingMethod");
 
             _storage = new ConcurrentStack<T>();
-            _registry = new ConcurrentDictionary<int, bool>();
             _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
             _releasingMethod = releasingMethod;
@@ -63,7 +61,7 @@ namespace Dem0n13.Utils
         /// </summary>
         public int TotalCount
         {
-            get { return _registry.Count; }
+            get { return _allocSemaphore.MaxCount - _allocSemaphore.CurrentCount; }
         }
 
         /// <summary>
@@ -78,7 +76,7 @@ namespace Dem0n13.Utils
             if (item == null)
                 throw new ArgumentNullException("item");
             bool inPool;
-            if (!TryGetStatus(item.PoolToken, out inPool))
+            if (!item.PoolToken.TryGetStatus(this, out inPool))
                 throw new ArgumentException("Specified object is not from this pool", "item");
             if (inPool)
                 throw new InvalidOperationException("Specified object is already in the pool");
@@ -126,14 +124,14 @@ namespace Dem0n13.Utils
         /// </summary>
         public void WaitAll()
         {
-            while (_ioSemaphore.CurrentCount != _registry.Count)
+            while (_ioSemaphore.CurrentCount != TotalCount)
                 Wait();
         }
 
         public override string ToString()
         {
             return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _ioSemaphore.CurrentCount,
-                                 _registry.Count, _ioSemaphore.MaxCount);
+                                 TotalCount, _ioSemaphore.MaxCount);
         }
 
         #endregion
@@ -177,7 +175,6 @@ namespace Dem0n13.Utils
             if (_allocSemaphore.TryTake())
             {
                 item = ObjectConstructor();
-                SetStatus(item.PoolToken, false);
                 return true;
             }
 
@@ -221,7 +218,7 @@ namespace Dem0n13.Utils
 
         private void Push(T item)
         {
-            SetStatus(item.PoolToken, true);
+            item.PoolToken.SetStatus(true);
             _storage.Push(item);
             _ioSemaphore.Release();
         }
@@ -231,28 +228,17 @@ namespace Dem0n13.Utils
             if (_ioSemaphore.TryTake())
             {
                 _storage.TryPop(out item);
-                SetStatus(item.PoolToken, false);
+                item.PoolToken.SetStatus(false);
                 return true;
             }
             item = default(T);
             return false;
         }
 
-        private void SetStatus(PoolToken<T> token, bool inPool)
-        {
-            _registry[token.Id] = inPool;
-        }
-
-        private bool TryGetStatus(PoolToken<T> token, out bool inPool)
-        {
-            return _registry.TryGetValue(token.Id, out inPool);
-        }
 
         private void Unregister(PoolToken<T> token)
         {
             token.Cancel();
-            bool state;
-            _registry.TryRemove(token.Id, out state);
             _allocSemaphore.Release();
         }
 
