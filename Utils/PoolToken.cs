@@ -8,7 +8,7 @@ namespace Dem0n13.Utils
         private readonly T _obj;
         private readonly Pool<T> _pool;
 
-        private bool _canResurrect;
+        private bool _inPool;
         
         public PoolToken(IPoolable<T> obj, Pool<T> pool)
         {
@@ -17,27 +17,27 @@ namespace Dem0n13.Utils
             
             _obj = (T) obj;
             _pool = pool;
-            _canResurrect = pool != null;
+            _inPool = pool == null; // prevents resurrection, if object created "out of pool"
         }
 
         #region For Pool<T> access
 
         internal bool TryGetStatus(Pool<T> pool, out bool inPool)
         {
-            inPool = !_canResurrect;
+            inPool = _inPool;
             return pool == _pool;
         }
 
         internal void SetStatus(bool inPool)
         {
-            _canResurrect = !inPool;
+            _inPool = inPool;
         }
 
         #endregion
 
         ~PoolToken()
         {
-            if (_canResurrect)
+            if (!_inPool)
             {
                 GC.ReRegisterForFinalize(this);
                 GC.ReRegisterForFinalize(_obj);

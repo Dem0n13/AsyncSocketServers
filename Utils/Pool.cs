@@ -14,9 +14,10 @@ namespace Dem0n13.Utils
         where T : IPoolable<T>
     {
         private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
-        private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
         private readonly PoolReleasingMethod _releasingMethod;
+
+        private int _currentCount;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit.
@@ -38,7 +39,6 @@ namespace Dem0n13.Utils
                 throw new ArgumentOutOfRangeException("releasingMethod");
 
             _storage = new ConcurrentStack<T>();
-            _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
             _releasingMethod = releasingMethod;
         }
@@ -50,7 +50,7 @@ namespace Dem0n13.Utils
         /// </summary>
         public int CurrentCount
         {
-            get { return _ioSemaphore.CurrentCount; }
+            get { return _currentCount; }
         }
 
         /// <summary>
@@ -101,10 +101,8 @@ namespace Dem0n13.Utils
             T item;
             if (TryPop(out item))
                 return item;
-
             if (TryAllocatePop(out item))
                 return item;
-
             return WaitPop();
         }
 
@@ -114,14 +112,14 @@ namespace Dem0n13.Utils
         /// </summary>
         public void WaitAll()
         {
-            while (_ioSemaphore.CurrentCount != TotalCount)
+            while (_currentCount != TotalCount)
                 Wait();
         }
 
         public override string ToString()
         {
-            return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _ioSemaphore.CurrentCount,
-                                 TotalCount, _ioSemaphore.MaxCount);
+            return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _currentCount,
+                                 TotalCount, _allocSemaphore.MaxCount);
         }
 
         #endregion
@@ -210,14 +208,14 @@ namespace Dem0n13.Utils
         {
             item.PoolToken.SetStatus(true);
             _storage.Push(item);
-            _ioSemaphore.Release();
+            Interlocked.Increment(ref _currentCount);
         }
 
         private bool TryPop(out T item)
         {
-            if (_ioSemaphore.TryTake())
+            if (_storage.TryPop(out item))
             {
-                _storage.TryPop(out item);
+                Interlocked.Decrement(ref _currentCount);
                 item.PoolToken.SetStatus(false);
                 return true;
             }

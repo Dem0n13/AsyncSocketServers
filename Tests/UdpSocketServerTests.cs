@@ -43,8 +43,7 @@ namespace Dem0n13.Tests
         {
             _server.Start();
 
-            var client = new AsyncClientArgs();
-            client.SetBuffer(new byte[BufferSize], 0, BufferSize);
+            var client = new AsyncClientArgs(BufferSize);
             client.AcceptSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
 
             for (var i = 0; i < 100; i++)
