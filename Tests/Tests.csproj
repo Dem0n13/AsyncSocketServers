@@ -73,9 +73,9 @@
       <Project>{3F2C57D0-C2EC-4576-8914-1BF65A398F3D}</Project>
       <Name>UdpSocketServer</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Utils\Utils.csproj">
+    <ProjectReference Include="..\Utils\Pool.csproj">
       <Project>{384E5588-F3BA-4DEC-B7F5-7E78BB2739A4}</Project>
-      <Name>Utils</Name>
+      <Name>Pool</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>

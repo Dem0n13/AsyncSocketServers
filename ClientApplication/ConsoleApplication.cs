@@ -16,8 +16,9 @@ namespace Dem0n13.ClientApplication
             var serverEndPoint = new IPEndPoint(serverAddres, ServerPort);
             EndPoint emptyEndPoint = new IPEndPoint(IPAddress.None, ServerPort);
 
-            var client = new UdpClientArgsPool(BufferSize, 1, 1).Take();
-            client.Socket.ReceiveTimeout = 500;
+            var client = new AsyncClientArgs(BufferSize);
+            var socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            socket.ReceiveTimeout = 500;
             Console.WriteLine("Enter the message for server");
 
             string request;
@@ -26,10 +27,10 @@ namespace Dem0n13.ClientApplication
                 Console.Write("> ");
                 request = Console.ReadLine();
                 client.UTF8Message = request;
-                client.Socket.SendTo(client.DataBuffer, serverEndPoint);
+                socket.SendTo(client.Buffer, serverEndPoint);
                 try
                 {
-                    client.Socket.ReceiveFrom(client.DataBuffer, ref emptyEndPoint);
+                    socket.ReceiveFrom(client.Buffer, ref emptyEndPoint);
                     Console.WriteLine("< " + client.UTF8Message);
                 }
                 catch (SocketException ex)

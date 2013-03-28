@@ -46,6 +46,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SocketServer\SocketServer.csproj">
+      <Project>{A4B040D2-D5BC-485A-88F8-15493BCE5872}</Project>
+      <Name>SocketServer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TcpSocketServer\TcpSocketServer.csproj">
       <Project>{37777C7C-4F76-46AA-B2DB-8C3677D22E74}</Project>
       <Name>TcpSocketServer</Name>
@@ -54,9 +58,9 @@
       <Project>{3f2c57d0-c2ec-4576-8914-1bf65a398f3d}</Project>
       <Name>UdpSocketServer</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Utils\Utils.csproj">
+    <ProjectReference Include="..\Utils\Pool.csproj">
       <Project>{384E5588-F3BA-4DEC-B7F5-7E78BB2739A4}</Project>
-      <Name>Utils</Name>
+      <Name>Pool</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

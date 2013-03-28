@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Text;
+using Dem0n13.Utils;
 using NLog;
 
-namespace Dem0n13.Utils
+namespace Dem0n13.SocketServer
 {
     public class AsyncClientArgs : SocketAsyncEventArgs, IPoolable<AsyncClientArgs>
     {

@@ -37,10 +37,17 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncClientArgs.cs" />
     <Compile Include="ILogicServer.cs" />
     <Compile Include="BaseSocketServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ISocketServer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Utils\Pool.csproj">
+      <Project>{384E5588-F3BA-4DEC-B7F5-7E78BB2739A4}</Project>
+      <Name>Pool</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

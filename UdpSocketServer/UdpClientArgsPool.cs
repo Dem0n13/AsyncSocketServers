@@ -31,7 +31,6 @@ namespace Dem0n13.SocketServer
             args.Completed += _ioCompleted;
             args.RemoteEndPoint = new IPEndPoint(0L, 0);
             args.AcceptSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            args.AcceptSocket.Shutdown(SocketShutdown.Receive);
             return args;
         }
 

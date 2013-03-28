@@ -231,22 +231,5 @@ namespace Dem0n13.Tests
                 return new ImplObject(this);
             }
         }
-
-        internal class ThirdParty
-        {
-        }
-
-        internal class ThirdPartyPool : Pool<PoolObjectWrapper<ThirdParty>>
-        {
-            public ThirdPartyPool(int maxCapacity)
-                : base(maxCapacity, PoolReleasingMethod.Manual)
-            {
-            }
-
-            protected override PoolObjectWrapper<ThirdParty> ObjectConstructor()
-            {
-                return new PoolObjectWrapper<ThirdParty>(new ThirdParty(), this);
-            }
-        }
     }
 }

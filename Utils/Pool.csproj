@@ -30,24 +30,17 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NLog">
-      <HintPath>..\ExternalLibrary\NLog.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncClientArgs.cs" />
     <Compile Include="IPoolable.cs" />
-    <Compile Include="IUnique.cs" />
     <Compile Include="Pool.cs" />
     <Compile Include="PoolReleasingMethod.cs" />
     <Compile Include="PoolObject.cs" />
     <Compile Include="PoolToken.cs" />
     <Compile Include="LockFreeSemaphore.cs" />
-    <Compile Include="UniqueObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IdGenerator.cs" />
     <Compile Include="PoolObjectWrapper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
