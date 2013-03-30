@@ -9,15 +9,15 @@ namespace PoolApplication
 
     public class ThirdPartyPool : Pool<PoolObjectWrapper<ThirdParty>>
     {
-        public ThirdPartyPool(int maxCapacity, PoolReleasingMethod releasingMethod)
-            : base(maxCapacity, releasingMethod)
+        public ThirdPartyPool(int maxCapacity)
+            : base(maxCapacity)
         {
         }
 
         protected override PoolObjectWrapper<ThirdParty> ObjectConstructor()
         {
             var original = new ThirdParty();
-            return new PoolObjectWrapper<ThirdParty>(original, this);
+            return new PoolObjectWrapper<ThirdParty>(original);
         }
     }
 }

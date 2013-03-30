@@ -25,17 +25,6 @@ namespace Dem0n13.Tests
         }
 
         [Test]
-        public void Resurect()
-        {
-            var pool = new DerivedPool(0, 3);
-            pool.Take();
-            pool.Take();
-            pool.Take();
-            pool.WaitAll();
-            Assert.AreEqual(3, pool.CurrentCount);
-        }
-
-        [Test]
         public void OneThreadScenario()
         {
             const int iterations = 100;
@@ -46,7 +35,6 @@ namespace Dem0n13.Tests
             Assert.AreEqual(5, pool.TotalCount);
             Assert.AreEqual(5, pool.CurrentCount);
             Assert.Throws<InvalidOperationException>(() => pool.Release(item));
-            Assert.Throws<ArgumentException>(() => pool.Release(new Derived()));
 
             for (var i = 0; i < iterations; i++)
             {
@@ -82,7 +70,6 @@ namespace Dem0n13.Tests
                                 Thread.Sleep(1);
                                 Assert.DoesNotThrow(() => pool.Release(item));
                             }
-                            pool.Take();
                         })
                     .Start();
             }
@@ -130,14 +117,14 @@ namespace Dem0n13.Tests
             const int iterations = 10;
             const int taskCount = 25;
 
-            var pool0 = new DerivedPool(capacity0, capacity0, PoolReleasingMethod.Manual);
+            var pool0 = new DerivedPool(capacity0, capacity0);
             var sw = Stopwatch.StartNew();
             MultiThreadsScenario(taskCount, iterations, pool0);
             pool0.WaitAll();
             Debug.WriteLine(sw.Elapsed);
             Assert.AreEqual(capacity0, pool0.TotalCount);
 
-            var pool1 = new DerivedPool(capacity1, capacity1, PoolReleasingMethod.Manual);
+            var pool1 = new DerivedPool(capacity1, capacity1);
             sw.Restart();
             MultiThreadsScenario(taskCount, iterations, pool1);
             pool1.WaitAll();
@@ -145,7 +132,7 @@ namespace Dem0n13.Tests
             Assert.AreEqual(capacity1, pool1.TotalCount);
         }
 
-        private void MultiThreadsScenario<T>(int threadCount, int iterations, Pool<T> pool) where T : IPoolable<T>
+        private void MultiThreadsScenario<T>(int threadCount, int iterations, Pool<T> pool) where T : IPoolable
         {
             var factory = new TaskFactory(TaskScheduler.Default);
             ThreadPool.QueueUserWorkItem(state => { });
@@ -169,53 +156,33 @@ namespace Dem0n13.Tests
             Task.WaitAll(tasks);
         }
 
-        internal class Derived : PoolObject<Derived> // for user classes
+        internal class Derived : PoolObject // for user classes
         {
             public int Tag;
-
-            public Derived()
-                : this(null)
-            {
-            }
-
-            public Derived(Pool<Derived> pool) 
-                : base(pool)
-            {
-            }
         }
 
         internal class DerivedPool : Pool<Derived>
         {
-            public DerivedPool(int initialCount, int maxCapacity, PoolReleasingMethod releasingMethod = PoolReleasingMethod.Auto)
-                : base(maxCapacity, releasingMethod)
+            public DerivedPool(int initialCount, int maxCapacity)
+                : base(maxCapacity)
             {
                 TryAllocatePush(initialCount);
             }
 
             protected override Derived ObjectConstructor()
             {
-                return new Derived(this);
+                return new Derived();
             }
         }
 
-        internal class ImplBase
+        internal class BaseClass
         {
             public int Tag;
         }
 
-        internal class ImplObject : ImplBase, IPoolable<ImplObject>
+        internal class ImplObject : BaseClass, IPoolable
         {
-            public PoolToken<ImplObject> PoolToken { get; private set; }
-
-            public ImplObject()
-                : this(null)
-            {
-            }
-
-            public ImplObject(Pool<ImplObject> pool)
-            {
-                PoolToken = new PoolToken<ImplObject>(this, pool);
-            }
+            public bool InPool { get; set; }
         }
 
         internal class ImplObjectPool : Pool<ImplObject>
@@ -228,7 +195,7 @@ namespace Dem0n13.Tests
 
             protected override ImplObject ObjectConstructor()
             {
-                return new ImplObject(this);
+                return new ImplObject();
             }
         }
     }

@@ -3,31 +3,21 @@ using Dem0n13.Utils;
 
 namespace PoolApplication
 {
-    public class Deriving : PoolObject<Deriving>
+    public class Deriving : PoolObject
     {
         public byte[] Buffer;
-
-        public Deriving()
-            : this(null)
-        {
-        }
-
-        public Deriving(Pool<Deriving> pool)
-            : base(pool)
-        {
-        }
     }
 
     public class DerivingPool : Pool<Deriving>
     {
-        public DerivingPool(int maxCapacity, PoolReleasingMethod releasingMethod)
-            : base(maxCapacity, releasingMethod)
+        public DerivingPool(int maxCapacity)
+            : base(maxCapacity)
         {
         }
 
         protected override Deriving ObjectConstructor()
         {
-            return new Deriving(this) { Buffer = new byte[10240] };
+            return new Deriving { Buffer = new byte[10240] };
         }
 
         protected override void CleanUp(Deriving item)

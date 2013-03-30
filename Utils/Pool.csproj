@@ -36,9 +36,7 @@
   <ItemGroup>
     <Compile Include="IPoolable.cs" />
     <Compile Include="Pool.cs" />
-    <Compile Include="PoolReleasingMethod.cs" />
     <Compile Include="PoolObject.cs" />
-    <Compile Include="PoolToken.cs" />
     <Compile Include="LockFreeSemaphore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PoolObjectWrapper.cs" />

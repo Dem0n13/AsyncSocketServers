@@ -6,16 +6,13 @@ namespace Dem0n13.Utils
 {
     /// <summary>
     /// Provides a thread safely pool of re-usable objects.
-    /// Controls uniqueness of all objects in pool.
-    /// Recommended to override GetHashCode () and Equals (object) class of stored objects in order to improve efficiency.
     /// </summary>
     /// <typeparam name="T">Type of stored objects</typeparam>
     public abstract class Pool<T>
-        where T : IPoolable<T>
+        where T : IPoolable
     {
         private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
-        private readonly PoolReleasingMethod _releasingMethod;
 
         private int _currentCount;
 
@@ -24,23 +21,12 @@ namespace Dem0n13.Utils
         /// </summary>
         /// <param name="maxCapacity"></param>
         protected Pool(int maxCapacity)
-            : this(maxCapacity, PoolReleasingMethod.Auto)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit and the selected method of item returning.
-        /// </summary>
-        protected Pool(int maxCapacity, PoolReleasingMethod releasingMethod)
         {
             if (maxCapacity < 1)
                 throw new ArgumentOutOfRangeException("maxCapacity", "Max capacity must be greater than 0");
-            if (!Enum.IsDefined(typeof (PoolReleasingMethod), releasingMethod))
-                throw new ArgumentOutOfRangeException("releasingMethod");
 
             _storage = new ConcurrentStack<T>();
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
-            _releasingMethod = releasingMethod;
         }
 
         #region Public and internal members
@@ -72,22 +58,9 @@ namespace Dem0n13.Utils
         {
             if (item == null)
                 throw new ArgumentNullException("item");
-            bool inPool;
-            if (!item.PoolToken.TryGetStatus(this, out inPool))
-                throw new ArgumentException("Specified object is not from this pool", "item");
-            if (inPool)
+            if (item.InPool)
                 throw new InvalidOperationException("Specified object is already in the pool");
-            
-            ReleaseUnsafe(item);
-        }
 
-        /// <summary>
-        /// Puts the object without any checks back to the pool.
-        /// Only for usage by instances of <see cref="PoolToken{T}"/>
-        /// </summary>
-        /// <param name="item"> </param>
-        internal void ReleaseUnsafe(T item)
-        {
             CleanUp(item);
             Push(item);
         }
@@ -187,17 +160,8 @@ namespace Dem0n13.Utils
         /// </summary>
         protected void Wait()
         {
-            switch (_releasingMethod)
-            {
-                case PoolReleasingMethod.Auto:
-                    GC.Collect();
-                    Thread.Sleep(100);
-                    break;
-                case PoolReleasingMethod.Manual:
-                    if (!Thread.Yield())
-                        Thread.Sleep(100);
-                    break;
-            }
+            if (!Thread.Yield())
+                Thread.Sleep(100);
         }
 
         #endregion
@@ -206,7 +170,7 @@ namespace Dem0n13.Utils
 
         private void Push(T item)
         {
-            item.PoolToken.SetStatus(true);
+            item.InPool = true;
             _storage.Push(item);
             Interlocked.Increment(ref _currentCount);
         }
@@ -216,7 +180,7 @@ namespace Dem0n13.Utils
             if (_storage.TryPop(out item))
             {
                 Interlocked.Decrement(ref _currentCount);
-                item.PoolToken.SetStatus(false);
+                item.InPool = false;
                 return true;
             }
             item = default(T);

@@ -1,22 +1,17 @@
-namespace Dem0n13.Utils
+﻿namespace Dem0n13.Utils
 {
-    public sealed class PoolObjectWrapper<T> : IPoolable<PoolObjectWrapper<T>>
+    public sealed class PoolObjectWrapper<T> : PoolObject
     {
-        private readonly PoolToken<PoolObjectWrapper<T>> _poolToken;
-        private readonly T _obj;
-        
-        public PoolToken<PoolObjectWrapper<T>> PoolToken { get { return _poolToken; } }
-        public T Object { get { return _obj; } }
+        private readonly T _object;
 
-        public PoolObjectWrapper(T obj)
-            : this(obj, null)
+        public T Object
         {
+            get { return _object; }
         }
 
-        public PoolObjectWrapper(T obj, Pool<PoolObjectWrapper<T>> pool)
+        public PoolObjectWrapper(T @object)
         {
-            _obj = obj;
-            _poolToken = new PoolToken<PoolObjectWrapper<T>>(this, pool);
+            _object = @object;
         }
     }
 }

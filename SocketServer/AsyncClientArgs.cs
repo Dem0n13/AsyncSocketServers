@@ -6,24 +6,17 @@ using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class AsyncClientArgs : SocketAsyncEventArgs, IPoolable<AsyncClientArgs>
+    public class AsyncClientArgs : SocketAsyncEventArgs, IPoolable
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        private readonly PoolToken<AsyncClientArgs> _poolToken;
-        PoolToken<AsyncClientArgs> IPoolable<AsyncClientArgs>.PoolToken { get { return _poolToken; } }
+        bool IPoolable.InPool { get; set; }
 
         public AsyncClientArgs(int bufferSize)
-            : this(bufferSize, null)
-        {
-        }
-
-        public AsyncClientArgs(int bufferSize, Pool<AsyncClientArgs> pool)
         {
             SetBuffer(new byte[bufferSize], 0, bufferSize);
-            _poolToken = new PoolToken<AsyncClientArgs>(this, pool);
         }
 
         /// <summary>

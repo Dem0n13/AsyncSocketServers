@@ -11,7 +11,7 @@ namespace Dem0n13.SocketServer
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
 
         public UdpClientArgsPool(int bufferSize, EventHandler<SocketAsyncEventArgs> ioCompleted, int initialCount, int maxCapacity)
-            : base(maxCapacity, PoolReleasingMethod.Manual)
+            : base(maxCapacity)
         {
             if (bufferSize < 1)
                 throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must be greater than 0");
@@ -27,7 +27,7 @@ namespace Dem0n13.SocketServer
 
         protected override AsyncClientArgs ObjectConstructor()
         {
-            var args = new AsyncClientArgs(_bufferSize, this);
+            var args = new AsyncClientArgs(_bufferSize);
             args.Completed += _ioCompleted;
             args.RemoteEndPoint = new IPEndPoint(0L, 0);
             args.AcceptSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);

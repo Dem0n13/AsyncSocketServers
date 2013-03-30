@@ -10,7 +10,7 @@ namespace Dem0n13.SocketServer
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
 
         public TcpClientArgsPool(int bufferSize, EventHandler<SocketAsyncEventArgs> ioCompleted, int initialCount, int maxCapacity)
-            : base(maxCapacity, PoolReleasingMethod.Manual)
+            : base(maxCapacity)
         {
             if (bufferSize < 1)
                 throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must be greater than 0");
@@ -26,7 +26,7 @@ namespace Dem0n13.SocketServer
 
         protected override AsyncClientArgs ObjectConstructor()
         {
-            var args = new AsyncClientArgs(_bufferSize, this);
+            var args = new AsyncClientArgs(_bufferSize);
             args.Completed += _ioCompleted;
             return args;
         }
