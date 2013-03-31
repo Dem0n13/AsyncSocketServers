@@ -6,23 +6,18 @@ using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class TcpClientArgs : SocketAsyncEventArgs, IPoolable<TcpClientArgs>
+    public class TcpClientArgs : SocketAsyncEventArgs
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // символы, обрезаемые в сообщениях: \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        private readonly PoolToken<TcpClientArgs> _poolToken;
-        public PoolToken<TcpClientArgs> PoolToken { get { return _poolToken; } }
+        private readonly PoolSlot<TcpClientArgs> _poolSlot;
+        public PoolSlot<TcpClientArgs> PoolSlot { get { return _poolSlot; } }
 
         public TcpClientArgs()
-            : this(null)
         {
-        }
-
-        public TcpClientArgs(Pool<TcpClientArgs> pool)
-        {
-            _poolToken = new PoolToken<TcpClientArgs>(this, pool);
+            _poolSlot = new PoolSlot<TcpClientArgs>(this);
         }
 
         /// <summary>

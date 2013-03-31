@@ -2,24 +2,17 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Dem0n13.Utils;
 using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class UdpClientArgs : PoolObject<UdpClientArgs>
+    public class UdpClientArgs
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
         public UdpClientArgs(int bufferSize)
-            : this(bufferSize, null)
-        {
-        }
-
-        public UdpClientArgs(int bufferSize, Pool<UdpClientArgs> pool)
-            :base(pool)
         {
             if (bufferSize < 0)
                 throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must not be negative.");

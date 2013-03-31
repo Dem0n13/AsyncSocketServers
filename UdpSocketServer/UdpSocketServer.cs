@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
@@ -49,7 +50,7 @@ namespace Dem0n13.SocketServer
                                           TaskContinuationOptions.None,
                                           TaskScheduler.Default);
             
-            var currentClient = _clientPool.Take();
+            var currentClient = _clientPool.Take().Object;
 
             while (!_cancellationSource.IsCancellationRequested)
             {
@@ -62,7 +63,7 @@ namespace Dem0n13.SocketServer
                         // the current thread gets a new client args from the pool and continue the receiving loop
                         factory.StartNew(ProcessClient, currentClient)
                             .ContinueWith(ReleaseClient, currentClient);
-                        currentClient = _clientPool.Take();
+                        currentClient = _clientPool.Take().Object;
                     }
                     else
                     {
@@ -76,7 +77,7 @@ namespace Dem0n13.SocketServer
                 }
             }
 
-            _clientPool.Release(currentClient);
+            _clientPool.Release(new PoolSlot<UdpClientArgs>(currentClient));
         }
 
         private void ProcessClient(object state)
@@ -102,7 +103,7 @@ namespace Dem0n13.SocketServer
         {
             Log.Trace("The task was completed: " + task.Status);
             var client = (UdpClientArgs)state;
-            _clientPool.Release(client);
+            _clientPool.Release(new PoolSlot<UdpClientArgs>(client));
         }
     }
 }

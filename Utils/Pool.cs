@@ -11,41 +11,25 @@ namespace Dem0n13.Utils
     /// </summary>
     /// <typeparam name="T">Type of stored objects</typeparam>
     public abstract class Pool<T>
-        where T : IPoolable<T>
     {
-        private readonly ConcurrentStack<T> _storage; // storing objects "in pool"
+        private readonly ConcurrentStack<PoolSlot<T>> _storage; // storing objects "in pool"
         private readonly ConcurrentDictionary<int, bool> _registry; // storing all objects' ids and their statuses (true - "in pool", otherwise - false)
         private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
-        private readonly PoolReleasingMethod _releasingMethod;
-        
-        private volatile bool _isReleasingAllowed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit.
         /// </summary>
         /// <param name="maxCapacity"></param>
         protected Pool(int maxCapacity)
-            : this(maxCapacity, PoolReleasingMethod.Auto)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit and the selected method of item returning.
-        /// </summary>
-        protected Pool(int maxCapacity, PoolReleasingMethod releasingMethod)
         {
             if (maxCapacity < 1)
                 throw new ArgumentOutOfRangeException("maxCapacity", "Max capacity must be greater than 0");
-            if (!Enum.IsDefined(typeof(PoolReleasingMethod), releasingMethod))
-                throw new ArgumentOutOfRangeException("releasingMethod");
 
-            _storage = new ConcurrentStack<T>();
+            _storage = new ConcurrentStack<PoolSlot<T>>();
             _registry = new ConcurrentDictionary<int, bool>();
             _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
-            _releasingMethod = releasingMethod;
-            _isReleasingAllowed = true;
         }
 
         #region Public and internal members
@@ -69,48 +53,41 @@ namespace Dem0n13.Utils
         /// <summary>
         /// Puts the object back to the pool.
         /// </summary>
-        /// <param name="item">The object to return</param>
+        /// <param name="slot">The object to return</param>
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="ArgumentException" />
         /// <exception cref="ArgumentNullException" />
-        public void Release(T item)
+        public void Release(PoolSlot<T> slot)
         {
-            if (item == null)
-                throw new ArgumentNullException("item");
+            if (slot == null)
+                throw new ArgumentNullException("slot");
             bool inPool;
-            if (!TryGetStatus(item.PoolToken, out inPool))
-                throw new ArgumentException("Specified object is not from this pool", "item");
+            if (!_registry.TryGetValue(slot.Id, out inPool))
+                throw new ArgumentException("Specified object is not from this pool", "slot");
             if (inPool)
                 throw new InvalidOperationException("Specified object is already in the pool");
             
-            ReleaseUnsafe(item);
+            ReleaseUnsafe(slot);
         }
 
         /// <summary>
         /// Puts the object without any checks back to the pool.
-        /// Only for usage by instances of <see cref="PoolToken{T}"/>
+        /// Only for usage by instances of <see cref="PoolSlot{T}"/>
         /// </summary>
-        /// <param name="item"> </param>
-        internal void ReleaseUnsafe(T item)
+        /// <param name="slot"> </param>
+        internal void ReleaseUnsafe(PoolSlot<T> slot)
         {
-            if (_isReleasingAllowed)
-            {
-                CleanUp(item);
-                Push(item);
-            }
-            else
-            {
-                Unregister(item.PoolToken);
-            }
+            CleanUp(slot.Object);
+            Push(slot);
         }
 
         /// <summary>
         /// Gets available object from pool or creates new one.
         /// </summary>
-        /// <returns>Pool item</returns>
-        public T Take()
+        /// <returns>Pool slot</returns>
+        public PoolSlot<T> Take()
         {
-            T item;
+            PoolSlot<T> item;
             if (TryPop(out item))
                 return item;
 
@@ -161,7 +138,7 @@ namespace Dem0n13.Utils
         {
             if (_allocSemaphore.TryTake())
             {
-                Push(ObjectConstructor());
+                Push(Allocate());
                 return true;
             }
             return false;
@@ -170,31 +147,31 @@ namespace Dem0n13.Utils
         /// <summary>
         /// Attempts to create, register with status "Out of pool" and return a new instance of <see cref="T"/>
         /// </summary>
-        /// <param name="item"></param>
+        /// <param name="slot"></param>
         /// <returns>true if the operation was successfully, otherwise, false</returns>
-        protected bool TryAllocatePop(out T item)
+        protected bool TryAllocatePop(out PoolSlot<T> slot)
         {
             if (_allocSemaphore.TryTake())
             {
-                item = ObjectConstructor();
-                SetStatus(item.PoolToken, false);
+                slot = Allocate();
+                _registry[slot.Id] = false;
                 return true;
             }
 
-            item = default(T);
+            slot = default(PoolSlot<T>);
             return false;
         }
 
         /// <summary>
-        /// Waits for a free item
+        /// Waits for a free slot
         /// </summary>
-        /// <returns>Pool item</returns>
-        protected T WaitPop()
+        /// <returns>Pool slot</returns>
+        protected PoolSlot<T> WaitPop()
         {
-            T item;
-            while (!TryPop(out item))
+            PoolSlot<T> slot;
+            while (!TryPop(out slot))
                 Wait();
-            return item;
+            return slot;
         }
 
         /// <summary>
@@ -202,58 +179,37 @@ namespace Dem0n13.Utils
         /// </summary>
         protected void Wait()
         {
-            switch (_releasingMethod)
-            {
-                case PoolReleasingMethod.Auto:
-                    GC.Collect();
-                    Thread.Sleep(100);
-                    break;
-                case PoolReleasingMethod.Manual:
-                    if (!Thread.Yield())
-                        Thread.Sleep(100);
-                    break;
-            }
+            if (!Thread.Yield())
+                Thread.Sleep(100);
+        }
+
+        private PoolSlot<T> Allocate()
+        {
+            var @object = ObjectConstructor();
+            return new PoolSlot<T>(@object);
         }
 
         #endregion
 
         #region Storage wrappers
 
-        private void Push(T item)
+        private void Push(PoolSlot<T> item)
         {
-            SetStatus(item.PoolToken, true);
+            _registry[item.Id] = true;
             _storage.Push(item);
             _ioSemaphore.Release();
         }
 
-        private bool TryPop(out T item)
+        private bool TryPop(out PoolSlot<T> item)
         {
             if (_ioSemaphore.TryTake())
             {
                 _storage.TryPop(out item);
-                SetStatus(item.PoolToken, false);
+                _registry[item.Id] = false;
                 return true;
             }
-            item = default(T);
+            item = default(PoolSlot<T>);
             return false;
-        }
-
-        private void SetStatus(PoolToken<T> token, bool inPool)
-        {
-            _registry[token.Id] = inPool;
-        }
-
-        private bool TryGetStatus(PoolToken<T> token, out bool inPool)
-        {
-            return _registry.TryGetValue(token.Id, out inPool);
-        }
-
-        private void Unregister(PoolToken<T> token)
-        {
-            token.Cancel();
-            bool state;
-            _registry.TryRemove(token.Id, out state);
-            _allocSemaphore.Release();
         }
 
         #endregion
@@ -275,15 +231,5 @@ namespace Dem0n13.Utils
         }
 
         #endregion
-
-        ~Pool()
-        {
-            _isReleasingAllowed = false;
-            Wait();
-            
-            T item;
-            while (TryPop(out item))
-                Unregister(item.PoolToken);
-        }
     }
 }

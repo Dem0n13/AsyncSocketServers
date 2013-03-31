@@ -8,7 +8,7 @@ namespace Dem0n13.SocketServer
         private readonly int _bufferSize;
 
         public UdpClientArgsPool(int bufferSize, int initialCount, int maxCapacity)
-            : base(maxCapacity, PoolReleasingMethod.Manual)
+            : base(maxCapacity)
         {
             if (bufferSize < 1)
                 throw new ArgumentOutOfRangeException("bufferSize", "The buffer size must be greater than 0");
@@ -26,7 +26,7 @@ namespace Dem0n13.SocketServer
 
         protected override UdpClientArgs ObjectConstructor()
         {
-            return new UdpClientArgs(_bufferSize, this);
+            return new UdpClientArgs(_bufferSize);
         }
     }
 }

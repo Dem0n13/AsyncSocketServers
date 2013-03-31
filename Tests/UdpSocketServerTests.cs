@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using Dem0n13.SocketServer;
+using Dem0n13.Utils;
 using NUnit.Framework;
 
 namespace Dem0n13.Tests
@@ -71,7 +72,7 @@ namespace Dem0n13.Tests
             {
                 new Thread(o =>
                                {
-                                   var client = clients.Take();
+                                   var client = clients.Take().Object;
                                    client.Socket.ReceiveTimeout = 500;
                                    for (var r = 0; r < 100; r++)
                                    {
@@ -91,7 +92,7 @@ namespace Dem0n13.Tests
                                        }
                                    }
 
-                                   clients.Release(client);
+                                   clients.Release(new PoolSlot<UdpClientArgs>(client));
                                    
                                }).Start(i);
             }

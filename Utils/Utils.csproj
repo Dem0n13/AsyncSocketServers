@@ -37,12 +37,9 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IPoolable.cs" />
     <Compile Include="IUnique.cs" />
     <Compile Include="Pool.cs" />
-    <Compile Include="PoolReleasingMethod.cs" />
-    <Compile Include="PoolObject.cs" />
-    <Compile Include="PoolToken.cs" />
+    <Compile Include="PoolSlot.cs" />
     <Compile Include="LockFreeSemaphore.cs" />
     <Compile Include="UniqueObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
