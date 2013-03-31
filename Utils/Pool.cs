@@ -14,8 +14,9 @@ namespace Dem0n13.Utils
     {
         private readonly ConcurrentStack<PoolSlot<T>> _storage; // storing objects "in pool"
         private readonly ConcurrentDictionary<int, bool> _registry; // storing all objects' ids and their statuses (true - "in pool", otherwise - false)
-        private readonly LockFreeSemaphore _ioSemaphore; // ligth semaphore for push/pop operations
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
+
+        private int _currentCount;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit.
@@ -28,7 +29,6 @@ namespace Dem0n13.Utils
 
             _storage = new ConcurrentStack<PoolSlot<T>>();
             _registry = new ConcurrentDictionary<int, bool>();
-            _ioSemaphore = new LockFreeSemaphore(0, maxCapacity);
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
         }
 
@@ -39,7 +39,7 @@ namespace Dem0n13.Utils
         /// </summary>
         public int CurrentCount
         {
-            get { return _ioSemaphore.CurrentCount; }
+            get { return _currentCount; }
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Dem0n13.Utils
         /// Gets available object from pool or creates new one.
         /// </summary>
         /// <returns>Pool slot</returns>
-        public PoolSlot<T> Take()
+        public PoolSlot<T> TakeSlot()
         {
             PoolSlot<T> item;
             if (TryPop(out item))
@@ -103,14 +103,14 @@ namespace Dem0n13.Utils
         /// </summary>
         public void WaitAll()
         {
-            while (_ioSemaphore.CurrentCount != _registry.Count)
+            while (_currentCount != _registry.Count)
                 Wait();
         }
 
         public override string ToString()
         {
-            return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _ioSemaphore.CurrentCount,
-                                 _registry.Count, _ioSemaphore.MaxCount);
+            return string.Format("{0}: {1}/{2}/{3}", GetType().Name, _currentCount,
+                                 _registry.Count, _allocSemaphore.MaxCount);
         }
 
         #endregion
@@ -197,14 +197,14 @@ namespace Dem0n13.Utils
         {
             _registry[item.Id] = true;
             _storage.Push(item);
-            _ioSemaphore.Release();
+            Interlocked.Increment(ref _currentCount);
         }
 
         private bool TryPop(out PoolSlot<T> item)
         {
-            if (_ioSemaphore.TryTake())
+            if (_storage.TryPop(out item))
             {
-                _storage.TryPop(out item);
+                Interlocked.Decrement(ref _currentCount);
                 _registry[item.Id] = false;
                 return true;
             }

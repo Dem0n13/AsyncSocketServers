@@ -50,7 +50,7 @@ namespace Dem0n13.SocketServer
                                           TaskContinuationOptions.None,
                                           TaskScheduler.Default);
             
-            var currentClient = _clientPool.Take().Object;
+            var currentClient = _clientPool.TakeSlot().Object;
 
             while (!_cancellationSource.IsCancellationRequested)
             {
@@ -63,7 +63,7 @@ namespace Dem0n13.SocketServer
                         // the current thread gets a new client args from the pool and continue the receiving loop
                         factory.StartNew(ProcessClient, currentClient)
                             .ContinueWith(ReleaseClient, currentClient);
-                        currentClient = _clientPool.Take().Object;
+                        currentClient = _clientPool.TakeSlot().Object;
                     }
                     else
                     {

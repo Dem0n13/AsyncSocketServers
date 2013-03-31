@@ -69,7 +69,7 @@ namespace Dem0n13.SocketServer
                 case SocketError.Success:
                     Log.Trace("{0} подключен", args.AcceptSocket.RemoteEndPoint);
 
-                    var recieveArgs = _clientPool.Take();
+                    var recieveArgs = _clientPool.TakeSlot();
                     recieveArgs.AcceptSocket = args.AcceptSocket;
 
                     if (!args.AcceptSocket.ReceiveAsync(recieveArgs))

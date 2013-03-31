@@ -72,7 +72,7 @@ namespace Dem0n13.Tests
             {
                 new Thread(o =>
                                {
-                                   var client = clients.Take().Object;
+                                   var client = clients.TakeSlot().Object;
                                    client.Socket.ReceiveTimeout = 500;
                                    for (var r = 0; r < 100; r++)
                                    {

@@ -14,9 +14,9 @@ namespace Dem0n13.Tests
         public void Creation()
         {
             var pool = new ThirdPartyPool(0, 3);
-            pool.Take();
-            pool.Take();
-            pool.Take();
+            pool.TakeSlot();
+            pool.TakeSlot();
+            pool.TakeSlot();
             Assert.AreEqual(3, pool.TotalCount);
 
             pool = new ThirdPartyPool(100, 100);
@@ -30,16 +30,16 @@ namespace Dem0n13.Tests
             const int iterations = 100;
 
             var pool = new ThirdPartyPool(5, 50);
-            var item = pool.Take();
+            var item = pool.TakeSlot();
             pool.Release(item);
             Assert.AreEqual(5, pool.TotalCount);
             Assert.AreEqual(5, pool.CurrentCount);
             Assert.Throws<InvalidOperationException>(() => pool.Release(item));
-            Assert.Throws<ArgumentException>(() => pool.Release(new ThirdPartyPool(1, 1).Take()));
+            Assert.Throws<ArgumentException>(() => pool.Release(new ThirdPartyPool(1, 1).TakeSlot()));
 
             for (var i = 0; i < iterations; i++)
             {
-                var slot = pool.Take();
+                var slot = pool.TakeSlot();
                 pool.Release(slot);
             }
         }
@@ -59,7 +59,7 @@ namespace Dem0n13.Tests
                         {
                             for (var i = 0; i < iterations; i++)
                             {
-                                var item = pool.Take();
+                                var item = pool.TakeSlot();
                                 Thread.Sleep(1);
                                 Assert.DoesNotThrow(() => pool.Release(item));
                             }
@@ -109,7 +109,7 @@ namespace Dem0n13.Tests
                         {
                             for (var i = 0; i < iterations; i++)
                             {
-                                var item = pool.Take();
+                                var item = pool.TakeSlot();
                                 Thread.Sleep(10);
                                 pool.Release(item);
                             }
