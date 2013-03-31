@@ -5,7 +5,7 @@ using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
-    public sealed class UdpClientArgsPool : Pool<AsyncClientArgs>
+    public sealed class UdpClientArgsPool : PoolEx<AsyncClientArgs>
     {
         private readonly int _bufferSize;
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
@@ -34,9 +34,9 @@ namespace Dem0n13.SocketServer
             return args;
         }
 
-        protected override void CleanUp(AsyncClientArgs item)
+        protected override void CleanUp(AsyncClientArgs @object)
         {
-            item.UTF8Message = null;
+            @object.UTF8Message = null;
         }
     }
 }

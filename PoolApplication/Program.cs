@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Dem0n13.Utils;
 
 namespace PoolApplication
 {
@@ -9,9 +10,9 @@ namespace PoolApplication
     {
         static void Main()
         {
-            const int iterCount = 25000;
+            const int iterCount = 100000;
             const int tasksCount = 25;
-            
+            /*
             Test(OneThreadWithoutPool, iterCount);
             GC.Collect();
             GC.WaitForFullGCComplete();
@@ -23,7 +24,7 @@ namespace PoolApplication
             Test(ManyThreadsWithoutPool, iterCount, tasksCount);
             GC.Collect();
             GC.WaitForFullGCComplete();
-
+*/
             Test(ManyThreadsWithPool, iterCount, tasksCount);
             
             Console.ReadLine();
@@ -54,11 +55,12 @@ namespace PoolApplication
 
         private static void OneThreadWithPool(int iterCount)
         {
-            var pool = new ImplementingPool(1024, 0, 10);
+            var pool = new ThirdPartyPool(1024, 0, 10);
             for (var i = 0; i < iterCount; i++)
             {
-                var args = pool.Take();
-                pool.Release(args);
+                using (var slot = pool.TakeSlot())
+                {
+                }
             }
         }
         
@@ -83,7 +85,7 @@ namespace PoolApplication
         private static void ManyThreadsWithPool(int iterCount, int taskCount)
         {
             var tasks = new Task[taskCount];
-            var pool = new ImplementingPool(1024, 0, 10);
+            var pool = new ThirdPartyPool(1024, 0, 10);
 
             for (var t = 0; t < taskCount; t++)
             {
@@ -92,8 +94,9 @@ namespace PoolApplication
                         {
                             for (var i = 0; i < iterCount; i++)
                             {
-                                var args = pool.Take();
-                                pool.Release(args);
+                                using (var slot = pool.TakeSlot())
+                                {
+                                }
                             }
                         });
             }

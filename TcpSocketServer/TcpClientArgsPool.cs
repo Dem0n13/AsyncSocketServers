@@ -4,7 +4,7 @@ using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
-    public sealed class TcpClientArgsPool : Pool<AsyncClientArgs>
+    public sealed class TcpClientArgsPool : PoolEx<AsyncClientArgs>
     {
         private readonly int _bufferSize;
         private readonly EventHandler<SocketAsyncEventArgs> _ioCompleted;
@@ -30,11 +30,11 @@ namespace Dem0n13.SocketServer
             args.Completed += _ioCompleted;
             return args;
         }
-
-        protected override void CleanUp(AsyncClientArgs item)
+        
+        protected override void CleanUp(AsyncClientArgs @object)
         {
-            item.UTF8Message = null;
-            item.AcceptSocket = null;
+            @object.UTF8Message = null;
+            @object.AcceptSocket = null;
         }
     }
 }

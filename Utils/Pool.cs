@@ -7,17 +7,16 @@ namespace Dem0n13.Utils
     /// <summary>
     /// Provides a thread safely pool of re-usable objects.
     /// </summary>
-    /// <typeparam name="TPoolable">Type of stored objects</typeparam>
-    public abstract class Pool<TPoolable>
-        where TPoolable : IPoolable
+    /// <typeparam name="T">Type of stored objects</typeparam>
+    public abstract class Pool<T>
     {
-        private readonly ConcurrentStack<TPoolable> _storage; // storing objects "in pool"
+        private readonly ConcurrentStack<PoolSlot<T>> _storage; // storing objects "in pool"
         private readonly LockFreeSemaphore _allocSemaphore; // light semaphore for allocate operations
 
         private int _currentCount;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Pool{TPoolable}"/> with specified upper limit.
+        /// Initializes a new instance of the <see cref="Pool{T}"/> with specified upper limit.
         /// </summary>
         /// <param name="maxCapacity"></param>
         protected Pool(int maxCapacity)
@@ -25,14 +24,14 @@ namespace Dem0n13.Utils
             if (maxCapacity < 1)
                 throw new ArgumentOutOfRangeException("maxCapacity", "Max capacity must be greater than 0");
 
-            _storage = new ConcurrentStack<TPoolable>();
+            _storage = new ConcurrentStack<PoolSlot<T>>();
             _allocSemaphore = new LockFreeSemaphore(maxCapacity, maxCapacity);
         }
 
         #region Public members
 
         /// <summary>
-        /// Gets the current number of the <see cref="TPoolable"/> in pool.
+        /// Gets the current number of the available <see cref="T"/> in pool.
         /// </summary>
         public int CurrentCount
         {
@@ -40,7 +39,7 @@ namespace Dem0n13.Utils
         }
 
         /// <summary>
-        /// Gets the number of the <see cref="TPoolable"/>, ever created in pool.
+        /// Gets the number of the <see cref="T"/>, ever created in pool.
         /// </summary>
         public int TotalCount
         {
@@ -48,34 +47,38 @@ namespace Dem0n13.Utils
         }
 
         /// <summary>
-        /// Puts the object back to the pool.
+        /// Gets available object's slot from pool or creates new one.
         /// </summary>
-        /// <param name="item">The object to return</param>
-        /// <exception cref="ArgumentNullException" />
-        /// <exception cref="InvalidOperationException" />
-        public void Release(TPoolable item)
+        /// <returns>Pool slot</returns>
+        public PoolSlot<T> TakeSlot()
         {
-            if (item == null)
-                throw new ArgumentNullException("item");
-            if (item.InPool)
-                throw new InvalidOperationException("Specified object is already in the pool");
-
-            CleanUp(item);
-            Push(item);
+            PoolSlot<T> slot;
+            if (TryPop(out slot))
+                return slot;
+            if (TryAllocatePop(out slot))
+                return slot;
+            return WaitPop();
         }
 
         /// <summary>
-        /// Gets available object from pool or creates new one.
+        /// Puts the object's slot back to the pool.
         /// </summary>
-        /// <returns>Pool item</returns>
-        public TPoolable Take()
+        /// <param name="slot">The slot to return</param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="ArgumentException" />
+        /// <exception cref="InvalidOperationException" />
+        public void Release(PoolSlot<T> slot)
         {
-            TPoolable item;
-            if (TryPop(out item))
-                return item;
-            if (TryAllocatePop(out item))
-                return item;
-            return WaitPop();
+            if (slot == null)
+                throw new ArgumentNullException("slot");
+            bool inPool;
+            if (!slot.TryGetStatus(this, out inPool))
+                throw new ArgumentException("Specified object is not from this pool");
+            if (inPool)
+                throw new InvalidOperationException("Specified object is already in the pool");
+
+            CleanUp(slot.Object);
+            Push(slot);
         }
 
         /// <summary>
@@ -99,7 +102,7 @@ namespace Dem0n13.Utils
         #region Pool operations
 
         /// <summary>
-        /// Attempts to create and adds the specified number of instances of <see cref="TPoolable"/> to the pool.
+        /// Attempts to create and adds the specified number of instances of <see cref="T"/> to the pool.
         /// </summary>
         /// <param name="count">Count of objects to add</param>
         /// <returns>true if the operation was successfull, otherwise, false</returns>
@@ -112,46 +115,46 @@ namespace Dem0n13.Utils
         }
 
         /// <summary>
-        /// Attempts to create and adds a new instance of <see cref="TPoolable"/> to the pool.
+        /// Attempts to create and adds a new instance of <see cref="T"/> to the pool.
         /// </summary>
         /// <returns>true if the operation was successfull, otherwise, false</returns>
         protected bool TryAllocatePush()
         {
             if (_allocSemaphore.TryTake())
             {
-                Push(ObjectConstructor());
+                Push(Allocate());
                 return true;
             }
             return false;
         }
 
         /// <summary>
-        /// Attempts to create, register with status "Out of pool" and return a new instance of <see cref="TPoolable"/>
+        /// Attempts to create, register with status "Out of pool" and return a new instance of <see cref="T"/>
         /// </summary>
-        /// <param name="item"></param>
+        /// <param name="slot"></param>
         /// <returns>true if the operation was successfully, otherwise, false</returns>
-        protected bool TryAllocatePop(out TPoolable item)
+        protected bool TryAllocatePop(out PoolSlot<T> slot)
         {
             if (_allocSemaphore.TryTake())
             {
-                item = ObjectConstructor();
+                slot = Allocate();
                 return true;
             }
 
-            item = default(TPoolable);
+            slot = null;
             return false;
         }
 
         /// <summary>
-        /// Waits for a free item
+        /// Waits for a free slot
         /// </summary>
-        /// <returns>Pool item</returns>
-        protected TPoolable WaitPop()
+        /// <returns>Pool slot</returns>
+        protected PoolSlot<T> WaitPop()
         {
-            TPoolable item;
-            while (!TryPop(out item))
+            PoolSlot<T> slot;
+            while (!TryPop(out slot))
                 Wait();
-            return item;
+            return slot;
         }
 
         /// <summary>
@@ -163,6 +166,14 @@ namespace Dem0n13.Utils
                 Thread.Sleep(100);
         }
 
+        private PoolSlot<T> Allocate()
+        {
+            var obj = ObjectConstructor();
+            var slot = new PoolSlot<T>(obj, this);
+            HoldSlotInObject(obj, slot);
+            return slot;
+        }
+
         #endregion
 
         #region For overriding
@@ -171,13 +182,17 @@ namespace Dem0n13.Utils
         /// Initializes a new object, ready to be placed in the pool
         /// </summary>
         /// <returns>The initialized object</returns>
-        protected abstract TPoolable ObjectConstructor();
+        protected abstract T ObjectConstructor();
+
+        protected virtual void HoldSlotInObject(T @object, PoolSlot<T> slot)
+        {
+        }
 
         /// <summary>
         /// Provides clean up of the object before returning to the pool
         /// </summary>
-        /// <param name="item">Objects</param>
-        protected virtual void CleanUp(TPoolable item)
+        /// <param name="object">Objects</param>
+        protected virtual void CleanUp(T @object)
         {
         }
 
@@ -185,22 +200,22 @@ namespace Dem0n13.Utils
 
         #region Storage wrappers
 
-        private void Push(TPoolable item)
+        private void Push(PoolSlot<T> slot)
         {
-            item.InPool = true;
-            _storage.Push(item);
+            slot.SetStatus(true);
+            _storage.Push(slot);
             Interlocked.Increment(ref _currentCount);
         }
 
-        private bool TryPop(out TPoolable item)
+        private bool TryPop(out PoolSlot<T> slot)
         {
-            if (_storage.TryPop(out item))
+            if (_storage.TryPop(out slot))
             {
                 Interlocked.Decrement(ref _currentCount);
-                item.InPool = false;
+                slot.SetStatus(false);
                 return true;
             }
-            item = default(TPoolable);
+            slot = null;
             return false;
         }
 

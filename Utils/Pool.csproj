@@ -34,12 +34,12 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IPoolable.cs" />
+    <Compile Include="IPoolSlotHolder.cs" />
     <Compile Include="Pool.cs" />
-    <Compile Include="PoolObject.cs" />
     <Compile Include="LockFreeSemaphore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PoolObjectWrapper.cs" />
+    <Compile Include="PoolSlot.cs" />
+    <Compile Include="PoolEx.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

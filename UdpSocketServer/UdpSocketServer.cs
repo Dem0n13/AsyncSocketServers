@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
@@ -36,7 +35,7 @@ namespace Dem0n13.SocketServer
 
         private void StartReceiving()
         {
-            var client = _clientPool.Take();
+            var client = _clientPool.TakeObject();
             try
             {
                 if (!_serverSocket.ReceiveFromAsync(client))

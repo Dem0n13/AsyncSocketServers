@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Dem0n13.Utils;
 
 namespace Dem0n13.SocketServer
 {
@@ -70,9 +69,9 @@ namespace Dem0n13.SocketServer
                 case SocketError.Success:
                     Log.Trace("{0} подключен", args.AcceptSocket.RemoteEndPoint);
 
-                    var recieveArgs = _clientPool.Take();
+                    var recieveArgs = _clientPool.TakeObject();
                     recieveArgs.AcceptSocket = args.AcceptSocket;
-
+                    
                     if (!args.AcceptSocket.ReceiveAsync(recieveArgs))
                         ProcessReceive(recieveArgs);
                     break;

@@ -6,18 +6,18 @@ using NLog;
 
 namespace Dem0n13.SocketServer
 {
-    public class AsyncClientArgs : SocketAsyncEventArgs, IPoolable
+    public class AsyncClientArgs : SocketAsyncEventArgs, IPoolSlotHolder<AsyncClientArgs>
     {
         private static readonly char[] TrimChars = new[] { char.MinValue }; // \0
         private static readonly Logger Logger = LogManager.GetLogger("SocketServer");
         private static readonly Encoding UTF8 = Encoding.UTF8;
 
-        bool IPoolable.InPool { get; set; }
-
         public AsyncClientArgs(int bufferSize)
         {
             SetBuffer(new byte[bufferSize], 0, bufferSize);
         }
+
+        PoolSlot<AsyncClientArgs> IPoolSlotHolder<AsyncClientArgs>.PoolSlot { get; set; }
 
         /// <summary>
         /// Gets or sets the message encoded in UTF8, stored in the DataBuffer
