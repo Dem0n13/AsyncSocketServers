@@ -71,10 +71,7 @@ namespace Dem0n13.Utils
         {
             if (slot == null)
                 throw new ArgumentNullException("slot");
-            bool inPool;
-            if (!slot.TryGetStatus(this, out inPool))
-                throw new ArgumentException("Specified object is not from this pool");
-            if (inPool)
+            if (slot.GetStatus(this))
                 throw new InvalidOperationException("Specified object is already in the pool");
 
             CleanUp(slot.Object);

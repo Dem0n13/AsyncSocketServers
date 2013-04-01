@@ -10,23 +10,32 @@ namespace PoolApplication
     {
         static void Main()
         {
-            const int iterCount = 100000;
             const int tasksCount = 25;
-            /*
-            Test(OneThreadWithoutPool, iterCount);
-            GC.Collect();
-            GC.WaitForFullGCComplete();
-            
-            Test(OneThreadWithPool, iterCount);
-            GC.Collect();
-            GC.WaitForFullGCComplete();
-            
-            Test(ManyThreadsWithoutPool, iterCount, tasksCount);
-            GC.Collect();
-            GC.WaitForFullGCComplete();
-*/
-            Test(ManyThreadsWithPool, iterCount, tasksCount);
-            
+
+            var iterCounts = new[] { 1000, 10000, 25000, 40000, 50000, 1000000 };
+            foreach (var iterCount in iterCounts)
+            {
+                Console.WriteLine(iterCount);
+
+                Test(OneThreadWithoutPool, iterCount);
+                GC.Collect();
+                GC.WaitForFullGCComplete();
+
+                Test(OneThreadWithPool, iterCount);
+                GC.Collect();
+                GC.WaitForFullGCComplete();
+
+                Test(ManyThreadsWithoutPool, iterCount, tasksCount);
+                GC.Collect();
+                GC.WaitForFullGCComplete();
+
+                Test(ManyThreadsWithPool, iterCount, tasksCount);
+                GC.Collect();
+                GC.WaitForFullGCComplete();
+
+                Console.WriteLine();
+            }
+
             Console.ReadLine();
         }
 

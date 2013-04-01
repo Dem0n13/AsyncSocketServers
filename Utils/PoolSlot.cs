@@ -26,12 +26,12 @@ namespace Dem0n13.Utils
         /// Gets value of availability flag and checks pool.
         /// </summary>
         /// <param name="pool">Slot's pool</param>
-        /// <param name="inPool">true, if item "in pool", overwise, false</param>
-        /// <returns>true, if item from this pool, overwise, false</returns>
-        internal bool TryGetStatus(Pool<T> pool, out bool inPool)
+        /// <returns>true, if item "in pool", overwise, false</returns>
+        internal bool GetStatus(Pool<T> pool)
         {
-            inPool = _inPool;
-            return pool == _pool;
+            if (_pool != pool)
+                throw new ArgumentException("This slot not for specified pool", "pool");
+            return _inPool;
         }
 
         /// <summary>
