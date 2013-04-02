@@ -12,26 +12,15 @@ namespace PoolApplication
         {
             const int tasksCount = 25;
 
-            var iterCounts = new[] { 1000, 10000, 25000, 40000, 50000, 1000000 };
+            var iterCounts = new[] { 1000, 10000, 25000, 50000, 1000000 };
             foreach (var iterCount in iterCounts)
             {
                 Console.WriteLine(iterCount);
 
                 Test(OneThreadWithoutPool, iterCount);
-                GC.Collect();
-                GC.WaitForFullGCComplete();
-
                 Test(OneThreadWithPool, iterCount);
-                GC.Collect();
-                GC.WaitForFullGCComplete();
-
                 Test(ManyThreadsWithoutPool, iterCount, tasksCount);
-                GC.Collect();
-                GC.WaitForFullGCComplete();
-
                 Test(ManyThreadsWithPool, iterCount, tasksCount);
-                GC.Collect();
-                GC.WaitForFullGCComplete();
 
                 Console.WriteLine();
             }
@@ -44,6 +33,9 @@ namespace PoolApplication
             var sw = Stopwatch.StartNew();
             action(arg);
             Console.WriteLine("{0}: {1}", action.Method.Name, sw.Elapsed);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
 
         private static void Test(Action<int, int> action, int arg1, int arg2)
@@ -51,14 +43,19 @@ namespace PoolApplication
             var sw = Stopwatch.StartNew();
             action(arg1, arg2);
             Console.WriteLine("{0}: {1}", action.Method.Name, sw.Elapsed);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
 
         private static void OneThreadWithoutPool(int iterCount)
         {
             for (var i = 0; i < iterCount; i++)
             {
-                var args = new SocketAsyncEventArgs();
-                args.SetBuffer(new byte[1024], 0, 1024);
+                using (var args = new SocketAsyncEventArgs())
+                {
+                    args.SetBuffer(new byte[1024], 0, 1024);
+                }
             }
         }
 
@@ -83,8 +80,10 @@ namespace PoolApplication
                         {
                             for (var i = 0; i < iterCount; i++)
                             {
-                                var args = new SocketAsyncEventArgs();
-                                args.SetBuffer(new byte[1024], 0, 1024);
+                                using (var args = new SocketAsyncEventArgs())
+                                {
+                                    args.SetBuffer(new byte[1024], 0, 1024);
+                                }
                             }
                         });
             }

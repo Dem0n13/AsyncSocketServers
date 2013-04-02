@@ -89,6 +89,18 @@ namespace Dem0n13.Tests
             Assert.AreEqual(capacity1, pool1.TotalCount);
         }
 
+        [Test]
+        public void ReduceTotalCount()
+        {
+            var pool = new ThirdPartyPool(100, 100);
+            Assert.IsTrue(pool.TryReduceTotal(10));
+            Assert.AreEqual(10, pool.TotalCount);
+
+            var item = pool.TakeSlot();
+            Assert.IsFalse(pool.TryReduceTotal(0));
+            Assert.AreEqual(1, pool.TotalCount);
+        }
+
         private void MultiThreadsScenario(int threadCount, int iterations, Pool<ThirdParty> pool)
         {
             var factory = new TaskFactory(TaskScheduler.Default);

@@ -79,6 +79,23 @@ namespace Dem0n13.Utils
         }
 
         /// <summary>
+        /// Attempts to reduce the number of allocated objects.
+        /// </summary>
+        /// <param name="targetTotalCount">The target minimum number of objects</param>
+        /// <returns>true, if the target minimum number of objects was reached, otherwise, false</returns>
+        public bool TryReduceTotal(int targetTotalCount)
+        {
+            if (targetTotalCount < 0)
+                throw new ArgumentOutOfRangeException("targetTotalCount");
+            
+            var removingCount = TotalCount - targetTotalCount;
+            for (var i = 0; i < removingCount; i++)
+                if (!TryPopRemove())
+                    return TotalCount == targetTotalCount;
+            return TotalCount == targetTotalCount;
+        }
+
+        /// <summary>
         /// Waits for the pool to releasing all objects.
         /// Ensures that all objects are release before returning.
         /// </summary>
@@ -139,6 +156,17 @@ namespace Dem0n13.Utils
             }
 
             slot = null;
+            return false;
+        }
+
+        protected bool TryPopRemove()
+        {
+            PoolSlot<T> slot;
+            if (TryPop(out slot))
+            {
+                _allocSemaphore.Release();
+                return true;
+            }
             return false;
         }
 
